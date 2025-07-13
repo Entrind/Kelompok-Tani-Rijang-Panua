@@ -1,12 +1,16 @@
 import React from 'react';
 import { kelompokTani } from '../data/kelompok';
-import TaniTable from '../components/TaniTable';
+import TaniCard from '../components/TaniCard';
 
 const Home = () => {
   return (
-    <div className="p-6 max-w-4xl mx-auto">
-      <h1 className="text-xl font-bold mb-4">Daftar Kelompok Tani</h1>
-      <TaniTable data={kelompokTani} />
+    <div className="p-6 max-w-7xl mx-auto">
+      <h1 className="text-2xl font-bold mb-6">Daftar Kelompok Tani</h1>
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
+        {kelompokTani.map((kelompok) => (
+          <TaniCard key={kelompok.id} kelompok={kelompok} />
+        ))}
+      </div>
     </div>
   );
 };
