@@ -1,6 +1,6 @@
 import React from 'react';
 import { kelompokTani } from '../data/kelompok';
-import TaniCard from '../components/TaniCard';
+import TaniCard from '../components/cards/TaniCard';
 
 const Home = () => {
   return (
