@@ -19,5 +19,12 @@ export const kelompokTani = [
     ketua: 'Ibu Sitti',
     jumlah_anggota: 20,
     luas: '4 ha',
+  },
+    {
+    id: '4',
+    nama: 'Kelompok Tani Hijau',
+    ketua: 'Ibu Ani',
+    jumlah_anggota: 15,
+    luas: '2 ha',
   }
 ];
