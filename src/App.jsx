@@ -1,6 +1,7 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import Home from './pages/Home';
+import Tambah from './pages/Tambah';
 import Header from './components/layouts/Header';
 import Footer from './components/layouts/Footer';
 
@@ -12,7 +13,7 @@ function App() {
         <main className="flex-1">
           <Routes>
             <Route path="/" element={<Home />} />
-            {/* Placeholder untuk halaman lain */}
+            <Route path="/tambah" element={<Tambah />} />
           </Routes>
         </main>
         <Footer />
