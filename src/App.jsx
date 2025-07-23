@@ -1,7 +1,8 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import Home from './pages/Home';
-import Tambah from './pages/Tambah';
+import Admin from './pages/Admin/Admin';
+import Tambah from './pages/Admin/Tambah';
 import Header from './components/layouts/Header';
 import Footer from './components/layouts/Footer';
 
@@ -12,8 +13,9 @@ function App() {
         <Header />
         <main className="flex-1">
           <Routes>
-            <Route path="/" element={<Home />} />
-            <Route path="/tambah" element={<Tambah />} />
+              <Route path="/" element={<Home />} />
+              <Route path="/admin" element={<Admin />} />
+              <Route path="/admin/tambah" element={<Tambah />} />
           </Routes>
         </main>
         <Footer />
