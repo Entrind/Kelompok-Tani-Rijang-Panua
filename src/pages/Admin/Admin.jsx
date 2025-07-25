@@ -1,7 +1,20 @@
-import React from 'react';
+import { useEffect } from "react";
 import { Link } from 'react-router-dom';
 
+import { db } from "../../firebase";
+import { collection, getDocs } from "firebase/firestore";
+
 const Admin = () => {
+  useEffect(() => {
+    const fetchData = async () => {
+      const snapshot = await getDocs(collection(db, "kelompok-tani"));
+      snapshot.forEach((doc) => {
+        console.log(doc.id, "=>", doc.data());
+      });
+    };
+    fetchData();
+  }, []);
+
   return (
     <div className="max-w-5xl mx-auto p-6">
       <h1 className="text-2xl font-bold mb-4">Dashboard Admin</h1>
