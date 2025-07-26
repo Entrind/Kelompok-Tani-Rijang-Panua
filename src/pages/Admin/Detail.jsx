@@ -50,6 +50,12 @@ const Detail = () => {
 
       <h1 className="text-2xl font-bold mb-2">{kelompok.nama_kelompok}</h1>
       <p className="text-gray-700 mb-4">
+        ID Kelompok Tani: <strong>{kelompok.id || 0}</strong> <br></br>
+        Provinsi: <strong>{kelompok.provinsi}</strong> <br></br>
+        Kabupaten: <strong>{kelompok.kabupaten}</strong> <br></br>
+        Kecamatan: <strong>{kelompok.kecamatan}</strong> <br></br>
+      </p>
+      <p className="text-gray-700 mb-4">
         Jumlah Anggota: <strong>{kelompok.jumlah_anggota || 0}</strong> &nbsp; | &nbsp;
         Total Lahan: <strong>{kelompok.total_lahan || 0} Ha</strong>
       </p>
@@ -65,6 +71,7 @@ const Detail = () => {
               <th className="border p-2 text-left">NIK</th>
               <th className="border p-2">No HP</th>
               <th className="border p-2">Luas (Ha)</th>
+              <th className="border p-2">Jabatan</th>
               <th className="border p-2">Ket</th>
             </tr>
           </thead>
@@ -76,6 +83,7 @@ const Detail = () => {
                 <td className="border p-2">{a.nik}</td>
                 <td className="border p-2 text-center">{a.no_hp || "-"}</td>
                 <td className="border p-2 text-center">{a.luas || 0}</td>
+                <td className="border p-2 text-center">{a.jabatan || "-"}</td> {/* Baru */}
                 <td className="border p-2">{a.ket || "-"}</td>
               </tr>
             ))}
