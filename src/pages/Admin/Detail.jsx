@@ -4,6 +4,7 @@ import { db } from "../../firebase";
 import { doc, getDoc, collection, getDocs, updateDoc, deleteDoc, addDoc,} from "firebase/firestore";
 
 import AnggotaFormModal from "../../components/forms/AnggotaFormModal";
+import ConfirmModal from "../../components/forms/ConfirmModal";
 
 const Detail = () => {
   const { id } = useParams();
@@ -39,11 +40,21 @@ const Detail = () => {
     fetchDetail();
   }, [id]);
 
-  const handleDelete = async (anggotaId) => {
-    if (window.confirm("Yakin ingin menghapus anggota ini?")) {
-      await deleteDoc(doc(db, "kelompok_tani", id, "anggota", anggotaId));
-      setAnggota((prev) => prev.filter((a) => a.id !== anggotaId));
+  const [showConfirm, setShowConfirm] = useState(false);
+  const [anggotaIdToDelete, setAnggotaIdToDelete] = useState(null);
+
+  const handleDeleteClick = (anggotaId) => {
+    setAnggotaIdToDelete(anggotaId);
+    setShowConfirm(true);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (anggotaIdToDelete) {
+      await deleteDoc(doc(db, "kelompok_tani", id, "anggota", anggotaIdToDelete));
+      setAnggota((prev) => prev.filter((a) => a.id !== anggotaIdToDelete));
     }
+    setShowConfirm(false);
+    setAnggotaIdToDelete(null);
   };
 
   const handleTambah = () => {
@@ -128,11 +139,12 @@ const Detail = () => {
                     Edit
                   </button>
                   <button
-                    onClick={() => handleDelete(a.id)}
+                    onClick={() => handleDeleteClick(a.id)}
                     className="bg-red-600 text-white px-2 py-1 rounded"
                   >
                     Hapus
                   </button>
+
                 </td>
               </tr>
             ))}
@@ -147,6 +159,14 @@ const Detail = () => {
         onSubmit={handleSubmitModal}
         initialData={editData}
       />
+
+      <ConfirmModal
+        visible={showConfirm}
+        onClose={() => setShowConfirm(false)}
+        onConfirm={handleConfirmDelete}
+        message="Apakah Anda yakin ingin menghapus anggota ini?"
+      />
+
     </div>
   );
 };
