@@ -4,9 +4,12 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import Home from './pages/Home';
 import Admin from './pages/Admin/Admin';
 import Tambah from './pages/Admin/Tambah';
-import Detail from "./pages/admin/Detail";
+import Detail from "./pages/Admin/Detail";
 import Header from './components/layouts/Header';
 import Footer from './components/layouts/Footer';
+
+import { ToastContainer } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 
 function App() {
   return (

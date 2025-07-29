@@ -1,18 +1,27 @@
 import React, { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import { db } from "../../firebase";
-import { doc, getDoc, collection, getDocs, updateDoc, deleteDoc, addDoc,} from "firebase/firestore";
-
+import {
+  doc,
+  getDoc,
+  collection,
+  getDocs,
+  updateDoc,
+  deleteDoc,
+  addDoc,
+} from "firebase/firestore";
+import Swal from "sweetalert2";
+import { toast } from "react-toastify";
 import AnggotaFormModal from "../../components/forms/AnggotaFormModal";
-import ConfirmModal from "../../components/forms/ConfirmModal";
 
 const Detail = () => {
   const { id } = useParams();
   const [kelompok, setKelompok] = useState(null);
   const [anggota, setAnggota] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [loadingAction, setLoadingAction] = useState(false); // state untuk loading tombol
 
-  // Modal state
+  // Modal form tambah/edit
   const [showModal, setShowModal] = useState(false);
   const [editData, setEditData] = useState(null);
 
@@ -33,6 +42,7 @@ const Detail = () => {
         setLoading(false);
       } catch (err) {
         console.error("Gagal ambil detail:", err);
+        toast.error("Gagal memuat data");
         setLoading(false);
       }
     };
@@ -40,21 +50,43 @@ const Detail = () => {
     fetchDetail();
   }, [id]);
 
-  const [showConfirm, setShowConfirm] = useState(false);
-  const [anggotaIdToDelete, setAnggotaIdToDelete] = useState(null);
+  /** === ACTION === */
 
-  const handleDeleteClick = (anggotaId) => {
-    setAnggotaIdToDelete(anggotaId);
-    setShowConfirm(true);
-  };
+  const handleDelete = async (anggotaId) => {
+    // Sweetalert2 konfirmasi
+    const result = await Swal.fire({
+      title: "Hapus Anggota?",
+      text: "Data anggota ini akan dihapus permanen.",
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonColor: "#d33",
+      cancelButtonColor: "#3085d6",
+      confirmButtonText: "Ya, hapus!",
+      cancelButtonText: "Batal",
+    });
 
-  const handleConfirmDelete = async () => {
-    if (anggotaIdToDelete) {
-      await deleteDoc(doc(db, "kelompok_tani", id, "anggota", anggotaIdToDelete));
-      setAnggota((prev) => prev.filter((a) => a.id !== anggotaIdToDelete));
+    if (!result.isConfirmed) return;
+
+    try {
+      setLoadingAction(true);
+      await deleteDoc(doc(db, "kelompok_tani", id, "anggota", anggotaId));
+
+      // Update jumlah anggota
+      setAnggota((prev) => {
+        const updated = prev.filter((a) => a.id !== anggotaId);
+        updateDoc(doc(db, "kelompok_tani", id), {
+          jumlah_anggota: updated.length,
+        });
+        return updated;
+      });
+
+      toast.success("Anggota berhasil dihapus");
+    } catch (error) {
+      console.error(error);
+      toast.error("Gagal menghapus anggota");
+    } finally {
+      setLoadingAction(false);
     }
-    setShowConfirm(false);
-    setAnggotaIdToDelete(null);
   };
 
   const handleTambah = () => {
@@ -68,20 +100,38 @@ const Detail = () => {
   };
 
   const handleSubmitModal = async (data) => {
-    if (editData) {
-      // update
-      const anggotaRef = doc(db, "kelompok_tani", id, "anggota", editData.id);
-      await updateDoc(anggotaRef, data);
-      setAnggota((prev) =>
-        prev.map((a) => (a.id === editData.id ? { ...a, ...data } : a))
-      );
-    } else {
-      // tambah baru
-      const anggotaRef = collection(db, "kelompok_tani", id, "anggota");
-      const newDoc = await addDoc(anggotaRef, data);
-      setAnggota((prev) => [...prev, { id: newDoc.id, ...data }]);
+    try {
+      setLoadingAction(true);
+      if (editData) {
+        // Edit anggota
+        const anggotaRef = doc(db, "kelompok_tani", id, "anggota", editData.id);
+        await updateDoc(anggotaRef, data);
+
+        setAnggota((prev) =>
+          prev.map((a) => (a.id === editData.id ? { ...a, ...data } : a))
+        );
+
+        toast.success("Data anggota berhasil diperbarui");
+      } else {
+        // Tambah anggota baru
+        const anggotaRef = collection(db, "kelompok_tani", id, "anggota");
+        const newDoc = await addDoc(anggotaRef, data);
+
+        setAnggota((prev) => [...prev, { id: newDoc.id, ...data }]);
+
+        await updateDoc(doc(db, "kelompok_tani", id), {
+          jumlah_anggota: anggota.length + 1,
+        });
+
+        toast.success("Anggota baru berhasil ditambahkan");
+      }
+      setShowModal(false);
+    } catch (error) {
+      console.error(error);
+      toast.error("Gagal menyimpan data");
+    } finally {
+      setLoadingAction(false);
     }
-    setShowModal(false);
   };
 
   if (loading) return <div className="text-center py-10">Loading...</div>;
@@ -139,12 +189,12 @@ const Detail = () => {
                     Edit
                   </button>
                   <button
-                    onClick={() => handleDeleteClick(a.id)}
+                    onClick={() => handleDelete(a.id)}
                     className="bg-red-600 text-white px-2 py-1 rounded"
+                    disabled={loadingAction}
                   >
-                    Hapus
+                    {loadingAction ? "..." : "Hapus"}
                   </button>
-
                 </td>
               </tr>
             ))}
@@ -152,21 +202,13 @@ const Detail = () => {
         </table>
       )}
 
-      {/* Modal */}
+      {/* Modal Form */}
       <AnggotaFormModal
         visible={showModal}
         onClose={() => setShowModal(false)}
         onSubmit={handleSubmitModal}
         initialData={editData}
       />
-
-      <ConfirmModal
-        visible={showConfirm}
-        onClose={() => setShowConfirm(false)}
-        onConfirm={handleConfirmDelete}
-        message="Apakah Anda yakin ingin menghapus anggota ini?"
-      />
-
     </div>
   );
 };
