@@ -110,19 +110,30 @@ const Detail = () => {
     try {
       setLoadingAction(true);
       if (editData) {
+        // Edit
         const anggotaRef = doc(db, "kelompok_tani", id, "anggota", editData.id);
-        await updateDoc(anggotaRef, data);
-
+        await updateDoc(anggotaRef, {
+          ...data,
+          jabatan: data.jabatan || "Anggota", // 🔹 default Anggota
+        });
         setAnggota((prev) =>
-          prev.map((a) => (a.id === editData.id ? { ...a, ...data } : a))
+          prev.map((a) =>
+            a.id === editData.id ? { ...a, ...data, jabatan: data.jabatan || "Anggota" } : a
+          )
         );
-
         toast.success("Data anggota berhasil diperbarui");
       } else {
+        // Tambah
         const anggotaRef = collection(db, "kelompok_tani", id, "anggota");
-        const newDoc = await addDoc(anggotaRef, data);
+        const newDoc = await addDoc(anggotaRef, {
+          ...data,
+          jabatan: data.jabatan || "Anggota", // 🔹 default Anggota
+        });
 
-        setAnggota((prev) => [...prev, { id: newDoc.id, ...data }]);
+        setAnggota((prev) => [
+          ...prev,
+          { id: newDoc.id, ...data, jabatan: data.jabatan || "Anggota" },
+        ]);
 
         await updateDoc(doc(db, "kelompok_tani", id), {
           jumlah_anggota: anggota.length + 1,
