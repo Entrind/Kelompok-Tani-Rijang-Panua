@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import Swal from "sweetalert2";
 
 const AnggotaFormModal = ({ visible, onClose, onSubmit, initialData }) => {
   const [form, setForm] = useState({
@@ -10,6 +11,7 @@ const AnggotaFormModal = ({ visible, onClose, onSubmit, initialData }) => {
     ket: "",
   });
 
+  // Reset form ketika modal dibuka atau initialData berubah
   useEffect(() => {
     if (initialData) {
       setForm(initialData);
@@ -23,7 +25,7 @@ const AnggotaFormModal = ({ visible, onClose, onSubmit, initialData }) => {
         ket: "",
       });
     }
-  }, [initialData]);
+  }, [initialData, visible]); // 🔹 perhatikan 'visible' ikut dipantau
 
   if (!visible) return null;
 
@@ -31,12 +33,22 @@ const AnggotaFormModal = ({ visible, onClose, onSubmit, initialData }) => {
     setForm((prev) => ({ ...prev, [field]: value }));
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
+    // Validasi wajib isi nama
     if (!form.nama.trim()) {
-      alert("Nama wajib diisi!");
+      await Swal.fire({
+        icon: "warning",
+        title: "Nama wajib diisi!",
+        confirmButtonText: "OK",
+      });
       return;
     }
+
+    // Kirim data ke parent (Detail.jsx)
     onSubmit(form);
+
+    // Tutup modal setelah submit sukses
+    onClose();
   };
 
   return (

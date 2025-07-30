@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/exhaustive-deps */
 import React, { useEffect, useState, useMemo } from "react";
 import { useParams, Link } from "react-router-dom";
 import { db } from "../../firebase";
@@ -182,7 +183,7 @@ const Detail = () => {
         ),
       },
     ],
-    [loadingAction]
+    [handleDelete, loadingAction]
   );
 
   if (loading) return <div className="text-center py-10">Loading...</div>;
