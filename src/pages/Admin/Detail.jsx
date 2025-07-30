@@ -153,7 +153,34 @@ const Detail = () => {
       {
         accessorKey: "jabatan",
         header: "Jabatan",
-        Cell: ({ cell }) => cell.getValue() || "-",
+        Cell: ({ cell }) => {
+          // Jika kosong, set default "Anggota"
+          const value = cell.getValue() || "Anggota";
+          const colors = {
+            Ketua: "bg-green-600 text-white",
+            Sekretaris: "bg-blue-600 text-white",
+            Bendahara: "bg-yellow-600 text-white",
+            Anggota: "bg-gray-400 text-white",
+          };
+
+          return (
+            <div className="flex justify-center">
+              <span
+                className={`px-2 py-1 rounded-full text-xs font-semibold ${
+                  colors[value] || "bg-gray-300 text-gray-800"
+                }`}
+              >
+                {value}
+              </span>
+            </div>
+          );
+        },
+        muiTableBodyCellProps: {
+          align: "center", // 🔹 align text center di cell body
+        },
+        muiTableHeadCellProps: {
+          align: "center", // 🔹 align text center di header
+        },
       },
       {
         accessorKey: "ket",
@@ -183,7 +210,7 @@ const Detail = () => {
         ),
       },
     ],
-    [handleDelete, loadingAction]
+    [loadingAction]
   );
 
   if (loading) return <div className="text-center py-10">Loading...</div>;
