@@ -150,12 +150,29 @@ const Detail = () => {
     }
   };
 
-  /** === COLUMNS MRT === */
+  const jabatanOrder = {
+    Ketua: 1,
+    Sekretaris: 2,
+    Bendahara: 3,
+    Anggota: 4,
+  };
+
   const columns = useMemo(
     () => [
-      { accessorKey: "nama", header: "Nama" },
-      { accessorKey: "nik", header: "NIK" },
-      { accessorKey: "no_hp", header: "No HP" },
+      {
+        accessorKey: "nama",
+        header: "Nama",
+        muiTableHeadCellProps: { align: "center" },
+        muiTableBodyCellProps: { align: "center" },
+      },
+      {
+        accessorKey: "nik",
+        header: "NIK",
+      },
+      {
+        accessorKey: "no_hp",
+        header: "No HP",
+      },
       {
         accessorKey: "luas",
         header: "Luas (Ha)",
@@ -164,8 +181,21 @@ const Detail = () => {
       {
         accessorKey: "jabatan",
         header: "Jabatan",
+        sortingFn: (rowA, rowB) => {
+          const jabA = rowA.getValue("jabatan") || "Anggota";
+          const jabB = rowB.getValue("jabatan") || "Anggota";
+
+          // Urutkan berdasarkan jabatanOrder dulu
+          if (jabatanOrder[jabA] !== jabatanOrder[jabB]) {
+            return jabatanOrder[jabA] - jabatanOrder[jabB];
+          }
+
+          // Kalau jabatan sama, urutkan berdasarkan nama
+          const namaA = rowA.getValue("nama")?.toLowerCase() || "";
+          const namaB = rowB.getValue("nama")?.toLowerCase() || "";
+          return namaA.localeCompare(namaB);
+        },
         Cell: ({ cell }) => {
-          // Jika kosong, set default "Anggota"
           const value = cell.getValue() || "Anggota";
           const colors = {
             Ketua: "bg-green-600 text-white",
@@ -173,7 +203,6 @@ const Detail = () => {
             Bendahara: "bg-yellow-600 text-white",
             Anggota: "bg-gray-400 text-white",
           };
-
           return (
             <div className="flex justify-center">
               <span
@@ -213,9 +242,6 @@ const Detail = () => {
             </IconButton>
           </Box>
         ),
-        muiTableHeadCellProps: {
-          align: "center", // Header center
-        },
       },
     ],
     [loadingAction]
@@ -238,8 +264,8 @@ const Detail = () => {
 
       {/* Info kelompok tani */}
       <div className="bg-white p-4 rounded shadow mb-4 text-base">
-        <h1 className="text-lg font-bold mb-2">{kelompok?.nama_kelompok}</h1>
-        <div className=" text-gray-700">
+        <h1 className="text-2xl font-bold mb-5">{kelompok?.nama_kelompok}</h1>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-1 text-gray-700">
           <p>ID Kelompok: <strong>{kelompok.id}</strong></p>
           <p>Provinsi: <strong>{kelompok.provinsi}</strong></p>
           <p>Kabupaten: <strong>{kelompok.kabupaten}</strong></p>
@@ -270,6 +296,7 @@ const Detail = () => {
           enableColumnActions={false}
           enableColumnFilters={false}
           initialState={{
+            sorting: [{ id: "jabatan", desc: false }],
             pagination: {
               pageIndex: 0,
               pageSize: 10,
