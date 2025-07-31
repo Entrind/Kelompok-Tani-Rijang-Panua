@@ -186,12 +186,6 @@ const Detail = () => {
             </div>
           );
         },
-        muiTableBodyCellProps: {
-          align: "center", // 🔹 align text center di cell body
-        },
-        muiTableHeadCellProps: {
-          align: "center", // 🔹 align text center di header
-        },
       },
       {
         accessorKey: "ket",
@@ -203,7 +197,7 @@ const Detail = () => {
         enableSorting: false,
         enableColumnFilter: false,
         Cell: ({ row }) => (
-          <Box display="flex" gap={1}>
+          <Box display="flex" gap={1} justifyContent="center">
             <IconButton
               color="primary"
               onClick={() => handleEdit(row.original)}
@@ -219,6 +213,9 @@ const Detail = () => {
             </IconButton>
           </Box>
         ),
+        muiTableHeadCellProps: {
+          align: "center", // Header center
+        },
       },
     ],
     [loadingAction]
@@ -227,7 +224,7 @@ const Detail = () => {
   if (loading) return <div className="text-center py-10">Loading...</div>;
 
   return (
-    <div className="max-w-7xl mx-auto p-6">
+    <div className="max-w-full mx-auto p-6">
       <div className="mb-6 flex justify-between">
         <Link to="/admin" className="text-blue-600 hover:underline">
           &larr; Kembali
@@ -264,8 +261,12 @@ const Detail = () => {
           muiTableContainerProps={{
             sx: { maxWidth: "100%" }, // 🔹 Lebar penuh container
           }}
+          muiTableHeadCellProps={{
+            align: "center", // 🔹 Header center
+          }}
           muiTableBodyCellProps={{
-            sx: { whiteSpace: "nowrap" }, // 🔹 Hindari wrap teks
+            align: "center", // 🔹 Body center
+            sx: { whiteSpace: "nowrap" },
           }}
         />
       )}
