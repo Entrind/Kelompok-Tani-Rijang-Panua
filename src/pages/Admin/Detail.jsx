@@ -266,6 +266,11 @@ const Detail = () => {
       <div className="bg-white p-4 rounded shadow mb-4 text-base">
         <h1 className="text-2xl font-bold mb-5">{kelompok?.nama_kelompok}</h1>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-1 text-gray-700">
+          <p>Kategori: 
+            <strong className="ml-1">
+              {kelompok?.kategori || "Kelompok Tani"}
+            </strong>
+          </p>
           <p>ID Kelompok: <strong>{kelompok.id}</strong></p>
           <p>Provinsi: <strong>{kelompok.provinsi}</strong></p>
           <p>Kabupaten: <strong>{kelompok.kabupaten}</strong></p>
