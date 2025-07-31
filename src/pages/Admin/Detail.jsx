@@ -14,7 +14,7 @@ import {
 
 import { MaterialReactTable } from "material-react-table";
 import { Box, IconButton } from "@mui/material";
-import { Edit, Delete } from "@mui/icons-material";
+import { Edit, Delete, ArrowBack } from "@mui/icons-material";
 
 import Swal from "sweetalert2";
 import { toast } from "react-toastify";
@@ -225,10 +225,32 @@ const Detail = () => {
 
   return (
     <div className="max-w-full mx-auto p-6">
-      <div className="mb-6 flex justify-between">
-        <Link to="/admin" className="text-blue-600 hover:underline">
-          &larr; Kembali
+      {/* Tombol kembali di atas */}
+      <div className="mb-4">
+        <Link
+          to="/admin"
+          className="inline-flex items-center gap-1 text-blue-600 hover:text-blue-800"
+        >
+          <ArrowBack fontSize="small" />
+          <span className="text-sm font-medium">Kembali</span>
         </Link>
+      </div>
+
+      {/* Info kelompok tani */}
+      <div className="bg-white p-4 rounded shadow mb-4 text-base">
+        <h1 className="text-lg font-bold mb-2">{kelompok?.nama_kelompok}</h1>
+        <div className=" text-gray-700">
+          <p>ID Kelompok: <strong>{kelompok.id}</strong></p>
+          <p>Provinsi: <strong>{kelompok.provinsi}</strong></p>
+          <p>Kabupaten: <strong>{kelompok.kabupaten}</strong></p>
+          <p>Kecamatan: <strong>{kelompok.kecamatan}</strong></p>
+          <p>Jumlah Anggota: <strong>{kelompok.jumlah_anggota || 0}</strong></p>
+          <p>Total Lahan: <strong>{kelompok.total_lahan || 0} Ha</strong></p>
+        </div>
+      </div>
+
+      {/* Tombol tambah di atas tabel */}
+      <div className="flex justify-end mb-2">
         <button
           onClick={handleTambah}
           className="bg-lime-700 text-white px-4 py-2 rounded hover:bg-lime-800"
@@ -237,11 +259,6 @@ const Detail = () => {
         </button>
       </div>
 
-      <h1 className="text-2xl font-bold mb-2">{kelompok?.nama_kelompok}</h1>
-      <p className="text-gray-700 mb-4">
-        Jumlah Anggota: <strong>{kelompok.jumlah_anggota || 0}</strong> &nbsp; | &nbsp;
-        Total Lahan: <strong>{kelompok.total_lahan || 0} Ha</strong>
-      </p>
 
       {anggota.length === 0 ? (
         <div className="text-center text-gray-500">Belum ada data anggota</div>
