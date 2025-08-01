@@ -6,7 +6,7 @@ import { doc, getDoc, collection, getDocs, updateDoc, deleteDoc,addDoc,} from "f
 
 import { MaterialReactTable } from "material-react-table";
 import { Box, IconButton } from "@mui/material";
-import { Edit, Delete, ArrowBack } from "@mui/icons-material";
+import { Edit, Delete, ArrowBack, BorderAllRounded } from "@mui/icons-material";
 
 import Swal from "sweetalert2";
 import { toast } from "react-toastify";
@@ -162,8 +162,8 @@ const Detail = () => {
     const rows = [];
     rows.push([]);
     rows.push(["", "Nama Kelompok Tani", kelompok.nama_kelompok]);
-    rows.push(["", "ID Kelompok Tani", kelompok.id]);
     rows.push(["", "Kategori", kelompok.kategori || "Kelompok Tani"]);
+    rows.push(["", "ID Kelompok Tani", kelompok.id]);
     rows.push(["", "Provinsi", kelompok.provinsi]);
     rows.push(["", "Kabupaten", kelompok.kabupaten]);
     rows.push(["", "Kecamatan", kelompok.kecamatan]);
@@ -204,7 +204,7 @@ const Detail = () => {
       { wch: 20 },
       { wch: 15 },
       { wch: 15 },
-      { wch: 9},
+      { wch: 10 },
       { wch: 25 },
     ];
 
@@ -314,13 +314,13 @@ const Detail = () => {
       </div>
 
       {/* Info kelompok tani */}
-      <div className="bg-white p-4 rounded shadow mb-4 text-sm">
+      <div className="bg-white p-4 rounded-xl shadow-md mb-5 text-base">
         <h1 className="text-2xl font-bold mb-2">{kelompok?.nama_kelompok}</h1>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-1 text-gray-700">
-          <p>Kategori: <strong>{kelompok?.kategori || "Kelompok Tani"}</strong></p>
-          <p>ID Kelompok: <strong>{kelompok.id}</strong></p>
-          <p>Provinsi: <strong>{kelompok.provinsi}</strong></p>
-          <p>Kabupaten: <strong>{kelompok.kabupaten}</strong></p>
+          <p className="col-start-1 row-start-1">Kategori: <strong>{kelompok?.kategori || "Kelompok Tani"}</strong></p>
+          <p className="col-start-1 row-start-2">ID Kelompok: <strong>{kelompok.id}</strong></p>
+          <p className="col-start-1 row-start-3">Provinsi: <strong>{kelompok.provinsi}</strong></p>
+          <p className="col-start-1 row-start-4">Kabupaten: <strong>{kelompok.kabupaten}</strong></p>
           <p>Kecamatan: <strong>{kelompok.kecamatan}</strong></p>
           <p>Jumlah Anggota: <strong>{kelompok.jumlah_anggota || 0}</strong></p>
           <p>Total Lahan: <strong>{kelompok.total_lahan || 0} Ha</strong></p>
@@ -351,7 +351,7 @@ const Detail = () => {
 
         <button
           onClick={handleTambah}
-          className="bg-lime-700 text-white px-4 py-2 rounded hover:bg-lime-800"
+          className="bg-lime-700 text-white px-4 py-2 rounded-md hover:bg-lime-800"
         >
           + Tambah Anggota
         </button>
@@ -374,12 +374,38 @@ const Detail = () => {
               pageSize: 10,
             },
           }}
+          muiTablePaperProps={{
+            elevation: 2,
+            sx: {
+              marginTop: 1.5,
+              borderRadius: "0.75rem", 
+              overflow: "hidden",     
+              border: "1px solid #e5e7eb",
+            },
+          }}
+          muiTableContainerProps={{
+            sx: {
+              border: "none",
+            },
+          }}
           muiTableHeadCellProps={{
             align: "center",
+            sx: {
+              fontWeight: "bold",
+              backgroundColor: "#f3f4f6", 
+              color: "#374151",           
+            },
           }}
           muiTableBodyCellProps={{
             align: "center",
             sx: { whiteSpace: "nowrap" },
+          }}
+          muiTableBodyRowProps={{
+            sx: {
+              "&:hover": {
+                backgroundColor: "#f3f4f6",
+              },
+            },
           }}
         />
       )}
