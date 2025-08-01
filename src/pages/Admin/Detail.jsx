@@ -252,7 +252,7 @@ const Detail = () => {
           return (
             <div className="flex justify-center">
               <span
-                className={`px-2 py-1 rounded-full text-xs font-semibold ${
+                className={`px-2 py-1 rounded-md text-xs font-semibold ${
                   colors[value] || "bg-gray-300 text-gray-800"
                 }`}
               >
