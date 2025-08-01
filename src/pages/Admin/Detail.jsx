@@ -2,15 +2,7 @@
 import React, { useEffect, useState, useMemo } from "react";
 import { useParams, Link } from "react-router-dom";
 import { db } from "../../firebase";
-import {
-  doc,
-  getDoc,
-  collection,
-  getDocs,
-  updateDoc,
-  deleteDoc,
-  addDoc,
-} from "firebase/firestore";
+import { doc, getDoc, collection, getDocs, updateDoc, deleteDoc,addDoc,} from "firebase/firestore";
 
 import { MaterialReactTable } from "material-react-table";
 import { Box, IconButton } from "@mui/material";
@@ -19,6 +11,8 @@ import { Edit, Delete, ArrowBack } from "@mui/icons-material";
 import Swal from "sweetalert2";
 import { toast } from "react-toastify";
 import AnggotaFormModal from "../../components/forms/AnggotaFormModal";
+
+import * as XLSX from "xlsx";
 
 const Detail = () => {
   const { id } = useParams();
@@ -110,30 +104,22 @@ const Detail = () => {
     try {
       setLoadingAction(true);
       if (editData) {
-        // Edit
         const anggotaRef = doc(db, "kelompok_tani", id, "anggota", editData.id);
-        await updateDoc(anggotaRef, {
-          ...data,
-          jabatan: data.jabatan || "Anggota", // 🔹 default Anggota
-        });
+        await updateDoc(anggotaRef, data);
+
         setAnggota((prev) =>
-          prev.map((a) =>
-            a.id === editData.id ? { ...a, ...data, jabatan: data.jabatan || "Anggota" } : a
-          )
+          prev.map((a) => (a.id === editData.id ? { ...a, ...data } : a))
         );
+
         toast.success("Data anggota berhasil diperbarui");
       } else {
-        // Tambah
         const anggotaRef = collection(db, "kelompok_tani", id, "anggota");
         const newDoc = await addDoc(anggotaRef, {
+          jabatan: data.jabatan || "Anggota",
           ...data,
-          jabatan: data.jabatan || "Anggota", // 🔹 default Anggota
         });
 
-        setAnggota((prev) => [
-          ...prev,
-          { id: newDoc.id, ...data, jabatan: data.jabatan || "Anggota" },
-        ]);
+        setAnggota((prev) => [...prev, { id: newDoc.id, ...data }]);
 
         await updateDoc(doc(db, "kelompok_tani", id), {
           jumlah_anggota: anggota.length + 1,
@@ -150,6 +136,84 @@ const Detail = () => {
     }
   };
 
+  /** === EXPORT EXCEL === */
+  const handleExportExcel = () => {
+    if (!kelompok) {
+      toast.warn("Data kelompok belum siap");
+      return;
+    }
+    if (!anggota || anggota.length === 0) {
+      toast.warn("Tidak ada data anggota untuk diexport");
+      return;
+    }
+
+    // 🔹 Buat order jabatan
+    const jabatanOrder = { Ketua: 1, Sekretaris: 2, Bendahara: 3, Anggota: 4 };
+
+    // 🔹 Urutkan anggota dulu (jabatan → nama)
+    const anggotaSorted = [...anggota].sort((a, b) => {
+      const rankA = jabatanOrder[a.jabatan || "Anggota"];
+      const rankB = jabatanOrder[b.jabatan || "Anggota"];
+
+      if (rankA !== rankB) return rankA - rankB;
+      return (a.nama || "").localeCompare(b.nama || "");
+    });
+
+    const rows = [];
+    rows.push([]);
+    rows.push(["", "Nama Kelompok Tani", kelompok.nama_kelompok]);
+    rows.push(["", "ID Kelompok Tani", kelompok.id]);
+    rows.push(["", "Kategori", kelompok.kategori || "Kelompok Tani"]);
+    rows.push(["", "Provinsi", kelompok.provinsi]);
+    rows.push(["", "Kabupaten", kelompok.kabupaten]);
+    rows.push(["", "Kecamatan", kelompok.kecamatan]);
+    rows.push(["", "Jumlah Anggota", `${kelompok.jumlah_anggota || 0}`]);    
+    rows.push(["", "Total Lahan", `${kelompok.total_lahan || 0} Ha`]);
+    rows.push([]);
+
+    rows.push([
+      "No",
+      "Nama",
+      "NIK",
+      "No HP",
+      "Jabatan",
+      "Luas (Ha)",
+      "Keterangan",
+    ]);
+
+    anggotaSorted.forEach((a, idx) => {
+      rows.push([
+        idx + 1,
+        a.nama,
+        a.nik,
+        a.no_hp || "-",
+        a.jabatan || "Anggota",
+        a.luas || 0,
+        a.ket || "-",
+      ]);
+    });
+
+    rows.push([]);
+
+    const ws = XLSX.utils.aoa_to_sheet(rows);
+
+    // Atur lebar kolom
+    ws["!cols"] = [
+      { wch: 5 },
+      { wch: 25 },
+      { wch: 20 },
+      { wch: 15 },
+      { wch: 15 },
+      { wch: 9},
+      { wch: 25 },
+    ];
+
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Data Kelompok");
+    XLSX.writeFile(wb, `Kelompok_${kelompok.nama_kelompok}.xlsx`);
+  };
+
+  /** === COLUMNS MRT (dengan sorting prioritas jabatan) === */
   const jabatanOrder = {
     Ketua: 1,
     Sekretaris: 2,
@@ -162,35 +226,17 @@ const Detail = () => {
       {
         accessorKey: "nama",
         header: "Nama",
-        muiTableHeadCellProps: { align: "center" },
-        muiTableBodyCellProps: { align: "center" },
       },
-      {
-        accessorKey: "nik",
-        header: "NIK",
-      },
-      {
-        accessorKey: "no_hp",
-        header: "No HP",
-      },
-      {
-        accessorKey: "luas",
-        header: "Luas (Ha)",
-        Cell: ({ cell }) => cell.getValue() || 0,
-      },
-      {
+      { accessorKey: "nik", header: "NIK" },
+      { accessorKey: "no_hp", header: "No HP" },      {
         accessorKey: "jabatan",
         header: "Jabatan",
         sortingFn: (rowA, rowB) => {
           const jabA = rowA.getValue("jabatan") || "Anggota";
           const jabB = rowB.getValue("jabatan") || "Anggota";
-
-          // Urutkan berdasarkan jabatanOrder dulu
           if (jabatanOrder[jabA] !== jabatanOrder[jabB]) {
             return jabatanOrder[jabA] - jabatanOrder[jabB];
           }
-
-          // Kalau jabatan sama, urutkan berdasarkan nama
           const namaA = rowA.getValue("nama")?.toLowerCase() || "";
           const namaB = rowB.getValue("nama")?.toLowerCase() || "";
           return namaA.localeCompare(namaB);
@@ -215,6 +261,11 @@ const Detail = () => {
             </div>
           );
         },
+      },
+      {
+        accessorKey: "luas",
+        header: "Luas (Ha)",
+        Cell: ({ cell }) => cell.getValue() || 0,
       },
       {
         accessorKey: "ket",
@@ -251,7 +302,7 @@ const Detail = () => {
 
   return (
     <div className="max-w-full mx-auto p-6">
-      {/* Tombol kembali di atas */}
+      {/* Tombol kembali */}
       <div className="mb-4">
         <Link
           to="/admin"
@@ -263,14 +314,10 @@ const Detail = () => {
       </div>
 
       {/* Info kelompok tani */}
-      <div className="bg-white p-4 rounded shadow mb-4 text-base">
-        <h1 className="text-2xl font-bold mb-5">{kelompok?.nama_kelompok}</h1>
+      <div className="bg-white p-4 rounded shadow mb-4 text-sm">
+        <h1 className="text-2xl font-bold mb-2">{kelompok?.nama_kelompok}</h1>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-1 text-gray-700">
-          <p>Kategori: 
-            <strong className="ml-1">
-              {kelompok?.kategori || "Kelompok Tani"}
-            </strong>
-          </p>
+          <p>Kategori: <strong>{kelompok?.kategori || "Kelompok Tani"}</strong></p>
           <p>ID Kelompok: <strong>{kelompok.id}</strong></p>
           <p>Provinsi: <strong>{kelompok.provinsi}</strong></p>
           <p>Kabupaten: <strong>{kelompok.kabupaten}</strong></p>
@@ -280,8 +327,28 @@ const Detail = () => {
         </div>
       </div>
 
-      {/* Tombol tambah di atas tabel */}
-      <div className="flex justify-end mb-2">
+      {/* Tombol export & tambah anggota */}
+      <div className="flex justify-end mb-2 gap-2">
+        <button
+          onClick={handleExportExcel} // sama saja, hanya ganti onClick ke function yang sudah ada
+          className="ml-4 px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 flex items-center"
+        >
+          <svg
+            className="w-5 h-5 mr-2"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth="2"
+              d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+            />
+          </svg>
+          Export Excel
+        </button>
+
         <button
           onClick={handleTambah}
           className="bg-lime-700 text-white px-4 py-2 rounded hover:bg-lime-800"
@@ -290,7 +357,7 @@ const Detail = () => {
         </button>
       </div>
 
-
+      {/* Tabel anggota */}
       {anggota.length === 0 ? (
         <div className="text-center text-gray-500">Belum ada data anggota</div>
       ) : (
@@ -307,14 +374,11 @@ const Detail = () => {
               pageSize: 10,
             },
           }}
-          muiTableContainerProps={{
-            sx: { maxWidth: "100%" }, // 🔹 Lebar penuh container
-          }}
           muiTableHeadCellProps={{
-            align: "center", // 🔹 Header center
+            align: "center",
           }}
           muiTableBodyCellProps={{
-            align: "center", // 🔹 Body center
+            align: "center",
             sx: { whiteSpace: "nowrap" },
           }}
         />
