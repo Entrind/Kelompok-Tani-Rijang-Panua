@@ -17,6 +17,7 @@
     "file-saver": "^2.0.5",
     "firebase": "^12.0.0",
     "firebase-admin": "^13.4.0",
+    "jszip": "^3.10.1",
     "material-react-table": "^3.2.1",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
