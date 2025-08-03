@@ -4,7 +4,7 @@ import { Link } from 'react-router-dom';
 const Header = () => {
   return (
     <header className="bg-lime-800 text-white py-4 px-6 shadow-md">
-      <div className="max-w-7xl mx-auto flex justify-between items-center">
+      <div className="max-w-full mx-auto flex justify-between items-center">
         <h1 className="text-xl">
             <Link to="/" className="font-bold">Kelompok Tani Rijang Panua</Link>
         </h1>
