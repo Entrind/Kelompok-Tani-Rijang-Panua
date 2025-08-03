@@ -33,7 +33,9 @@ const Detail = () => {
         const kelompokSnap = await getDoc(docRef);
 
         if (kelompokSnap.exists()) {
-          setKelompok({ id: kelompokSnap.id, ...kelompokSnap.data() });
+          const data = { id: kelompokSnap.id, ...kelompokSnap.data() };
+          setKelompok(data);
+          
           const anggotaRef = collection(docRef, "anggota");
           const anggotaSnap = await getDocs(anggotaRef);
           const hasil = anggotaSnap.docs.map((doc) => ({
@@ -54,7 +56,25 @@ const Detail = () => {
   }, [id]);
 
   /** === ACTION === */
+  const updateSummary = async (data) => {
+      const jumlah = data.length;
+      const totalLahan = data.reduce(
+        (sum, a) => sum + (a.luas ? Number(a.luas) : 0),
+        0
+      );
 
+      await updateDoc(doc(db, "kelompok_tani", id), {
+        jumlah_anggota: jumlah,
+        total_lahan: totalLahan,
+      });
+
+      setKelompok((prev) => ({
+        ...prev,
+        jumlah_anggota: jumlah,
+        total_lahan: totalLahan,
+      }));
+    };
+    
   const handleDelete = async (anggotaId) => {
     const result = await Swal.fire({
       title: "Hapus Anggota?",
@@ -75,21 +95,7 @@ const Detail = () => {
 
       setAnggota((prev) => {
         const updated = prev.filter((a) => a.id !== anggotaId);
-        const totalLahan = updated.reduce((sum, a) => sum + (a.luas || 0), 0);
-
-        // Update Firestore jumlah anggota & total lahan
-        updateDoc(doc(db, "kelompok_tani", id), {
-          jumlah_anggota: updated.length,
-          total_lahan: totalLahan,
-        });
-
-        // Update state kelompok untuk langsung update di UI
-        setKelompok((prevKelompok) => ({
-          ...prevKelompok,
-          jumlah_anggota: updated.length,
-          total_lahan: totalLahan,
-        }));
-
+        updateSummary(updated);
         return updated;
       });
 
@@ -124,23 +130,8 @@ const Detail = () => {
           const updated = prev.map((a) =>
             a.id === editData.id ? { ...a, ...data } : a
           );
-
-          // Hitung ulang total lahan
-          const totalLahan = updated.reduce((sum, a) => sum + (a.luas || 0), 0);
-
-          // Update Firestore jumlah anggota & total lahan
-          updateDoc(doc(db, "kelompok_tani", id), {
-            jumlah_anggota: updated.length,
-            total_lahan: totalLahan,
-          });
-
-          // Update state kelompok untuk UI
-          setKelompok((prevKelompok) => ({
-            ...prevKelompok,
-            jumlah_anggota: updated.length,
-            total_lahan: totalLahan,
-          }));
-
+        
+          updateSummary(updated);
           return updated;
         });
 
@@ -154,22 +145,11 @@ const Detail = () => {
 
         const updated = [...anggota, { id: newDoc.id, ...data }];
         setAnggota(updated);
-
-        // Update Firestore (jumlah anggota & total lahan)
-        await updateDoc(doc(db, "kelompok_tani", id), {
-          jumlah_anggota: updated.length,
-          total_lahan: updated.reduce((sum, a) => sum + (a.luas || 0), 0),
-        });
-
-        // Update state kelompok
-        setKelompok((prev) => ({
-          ...prev,
-          jumlah_anggota: updated.length,
-          total_lahan: updated.reduce((sum, a) => sum + (a.luas || 0), 0),
-        }));
+        updateSummary(updated);
 
         toast.success("Anggota baru berhasil ditambahkan");
       }
+
       setShowModal(false);
     } catch (error) {
       console.error(error);
@@ -181,14 +161,8 @@ const Detail = () => {
 
   /** === EXPORT EXCEL === */
   const handleExportExcel = () => {
-    if (!kelompok) {
-      toast.warn("Data kelompok belum siap");
-      return;
-    }
-    if (!anggota || anggota.length === 0) {
-      toast.warn("Tidak ada data anggota untuk diexport");
-      return;
-    }
+    if (!kelompok) return toast.warn("Data kelompok belum siap");
+    if (!anggota.length) return toast.warn("Tidak ada data anggota untuk diexport");
 
     // Buat order jabatan
     const jabatanOrder = { Ketua: 1, Sekretaris: 2, Bendahara: 3, Anggota: 4 };
@@ -202,18 +176,19 @@ const Detail = () => {
       return (a.nama || "").localeCompare(b.nama || "");
     });
 
-    const rows = [];
-    rows.push([]);
-    rows.push(["", "Nama Kelompok Tani", kelompok.nama_kelompok]);
-    rows.push(["", "Kategori", kelompok.kategori || "Kelompok Tani"]);
-    rows.push(["", "ID Kelompok Tani", kelompok.id]);
-    rows.push(["", "Provinsi", kelompok.provinsi]);
-    rows.push(["", "Kabupaten", kelompok.kabupaten]);
-    rows.push(["", "Kecamatan", kelompok.kecamatan]);
-    rows.push(["", "Jumlah Anggota", `${kelompok.jumlah_anggota || 0}`]);    
-    rows.push(["", "Total Lahan", `${kelompok.total_lahan || 0} Ha`]);
-    rows.push([]);
-    rows.push(["No", "Nama", "NIK", "No HP", "Jabatan", "Luas (Ha)", "Keterangan"]);
+    const rows = [
+      [],
+      ["", "Nama Kelompok Tani", kelompok.nama_kelompok],
+      ["", "Kategori", kelompok.kategori || "Kelompok Tani"],
+      ["", "ID Kelompok Tani", kelompok.id],
+      ["", "Provinsi", kelompok.provinsi],
+      ["", "Kabupaten", kelompok.kabupaten],
+      ["", "Kecamatan", kelompok.kecamatan],
+      ["", "Jumlah Anggota", `${kelompok.jumlah_anggota || 0}`],
+      ["", "Total Lahan", `${kelompok.total_lahan || 0} Ha`],
+      [],
+      ["No", "Nama", "NIK", "No HP", "Jabatan", "Luas (Ha)", "Keterangan"],
+    ];
 
     anggotaSorted.forEach((a, idx) => {
       rows.push([
@@ -258,11 +233,10 @@ const Detail = () => {
   const columns = useMemo(
     () => [
       {
-        accessorKey: "nama",
-        header: "Nama",
-      },
+        accessorKey: "nama",header: "Nama" },
       { accessorKey: "nik", header: "NIK" },
-      { accessorKey: "no_hp", header: "No HP" },      {
+      { accessorKey: "no_hp", header: "No HP" },      
+      {
         accessorKey: "jabatan",
         header: "Jabatan",
         sortingFn: (rowA, rowB) => {
