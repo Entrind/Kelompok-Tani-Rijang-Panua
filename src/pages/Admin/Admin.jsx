@@ -145,10 +145,13 @@ const Admin = () => {
 
       // Update jumlah anggota di dokumen kelompok
       if (anggotaCount > 0) {
+        const currentData = await getDoc(docRef);
+        const currentCount = currentData.exists() ? currentData.data().jumlah_anggota || 0 : 0;
+
         await setDoc(
           docRef,
           {
-            jumlah_anggota: anggotaCount,
+            jumlah_anggota: currentCount + anggotaCount,
           },
           { merge: true }
         );
