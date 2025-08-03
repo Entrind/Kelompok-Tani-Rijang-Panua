@@ -128,14 +128,30 @@ const Admin = () => {
 
       // Tambahkan ketua/sekretaris/bendahara jika ada
       const anggotaColl = collection(docRef, "anggota");
+      let anggotaCount = 0;
+
       if (formData.ketua) {
         await addDoc(anggotaColl, { nama: formData.ketua, jabatan: "Ketua" });
+        anggotaCount++;
       }
       if (formData.sekretaris) {
         await addDoc(anggotaColl, { nama: formData.sekretaris, jabatan: "Sekretaris" });
+        anggotaCount++;
       }
       if (formData.bendahara) {
         await addDoc(anggotaColl, { nama: formData.bendahara, jabatan: "Bendahara" });
+        anggotaCount++;
+      }
+
+      // Update jumlah anggota di dokumen kelompok
+      if (anggotaCount > 0) {
+        await setDoc(
+          docRef,
+          {
+            jumlah_anggota: anggotaCount,
+          },
+          { merge: true }
+        );
       }
 
       await Swal.fire("Sukses", "Kelompok berhasil ditambahkan!", "success");
@@ -329,6 +345,19 @@ const Admin = () => {
             }}
             className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 flex items-center"
           >
+            <svg
+              className="w-5 h-5 mr-2"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth="2"
+                d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+              />
+            </svg>
             Export ZIP Excel
           </button>
         ) : (
@@ -375,6 +404,27 @@ const Admin = () => {
         initialState={{
           sorting: [{ id: "nama_kelompok", desc: false }],
           pagination: { pageIndex: 0, pageSize: 10 },
+        }}
+        muiTablePaperProps={{
+          elevation: 2,
+          sx: {
+            borderRadius: "1rem",
+            overflow: "hidden",
+            border: "1px solid #e5e7eb",
+          },
+        }}
+        muiTableHeadCellProps={{
+          align: "center",
+          sx: { fontWeight: "bold", backgroundColor: "#f3f4f6" },
+        }}
+        muiTableBodyCellProps={{
+          align: "center",
+          sx: { whiteSpace: "nowrap" },
+        }}
+        muiTableBodyRowProps={{
+          sx: {
+            "&:hover": { backgroundColor: "#f3f4f6" },
+          },
         }}
       />
 

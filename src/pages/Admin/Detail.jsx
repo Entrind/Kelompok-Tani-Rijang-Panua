@@ -75,9 +75,21 @@ const Detail = () => {
 
       setAnggota((prev) => {
         const updated = prev.filter((a) => a.id !== anggotaId);
+        const totalLahan = updated.reduce((sum, a) => sum + (a.luas || 0), 0);
+
+        // Update Firestore jumlah anggota & total lahan
         updateDoc(doc(db, "kelompok_tani", id), {
           jumlah_anggota: updated.length,
+          total_lahan: totalLahan,
         });
+
+        // Update state kelompok untuk langsung update di UI
+        setKelompok((prevKelompok) => ({
+          ...prevKelompok,
+          jumlah_anggota: updated.length,
+          total_lahan: totalLahan,
+        }));
+
         return updated;
       });
 
@@ -107,9 +119,30 @@ const Detail = () => {
         const anggotaRef = doc(db, "kelompok_tani", id, "anggota", editData.id);
         await updateDoc(anggotaRef, data);
 
-        setAnggota((prev) =>
-          prev.map((a) => (a.id === editData.id ? { ...a, ...data } : a))
-        );
+        // Update data anggota di state
+        setAnggota((prev) => {
+          const updated = prev.map((a) =>
+            a.id === editData.id ? { ...a, ...data } : a
+          );
+
+          // Hitung ulang total lahan
+          const totalLahan = updated.reduce((sum, a) => sum + (a.luas || 0), 0);
+
+          // Update Firestore jumlah anggota & total lahan
+          updateDoc(doc(db, "kelompok_tani", id), {
+            jumlah_anggota: updated.length,
+            total_lahan: totalLahan,
+          });
+
+          // Update state kelompok untuk UI
+          setKelompok((prevKelompok) => ({
+            ...prevKelompok,
+            jumlah_anggota: updated.length,
+            total_lahan: totalLahan,
+          }));
+
+          return updated;
+        });
 
         toast.success("Data anggota berhasil diperbarui");
       } else {
@@ -119,11 +152,21 @@ const Detail = () => {
           ...data,
         });
 
-        setAnggota((prev) => [...prev, { id: newDoc.id, ...data }]);
+        const updated = [...anggota, { id: newDoc.id, ...data }];
+        setAnggota(updated);
 
+        // Update Firestore (jumlah anggota & total lahan)
         await updateDoc(doc(db, "kelompok_tani", id), {
-          jumlah_anggota: anggota.length + 1,
+          jumlah_anggota: updated.length,
+          total_lahan: updated.reduce((sum, a) => sum + (a.luas || 0), 0),
         });
+
+        // Update state kelompok
+        setKelompok((prev) => ({
+          ...prev,
+          jumlah_anggota: updated.length,
+          total_lahan: updated.reduce((sum, a) => sum + (a.luas || 0), 0),
+        }));
 
         toast.success("Anggota baru berhasil ditambahkan");
       }
@@ -147,10 +190,10 @@ const Detail = () => {
       return;
     }
 
-    // 🔹 Buat order jabatan
+    // Buat order jabatan
     const jabatanOrder = { Ketua: 1, Sekretaris: 2, Bendahara: 3, Anggota: 4 };
 
-    // 🔹 Urutkan anggota dulu (jabatan → nama)
+    // Urutkan anggota dulu (jabatan → nama)
     const anggotaSorted = [...anggota].sort((a, b) => {
       const rankA = jabatanOrder[a.jabatan || "Anggota"];
       const rankB = jabatanOrder[b.jabatan || "Anggota"];
@@ -170,16 +213,7 @@ const Detail = () => {
     rows.push(["", "Jumlah Anggota", `${kelompok.jumlah_anggota || 0}`]);    
     rows.push(["", "Total Lahan", `${kelompok.total_lahan || 0} Ha`]);
     rows.push([]);
-
-    rows.push([
-      "No",
-      "Nama",
-      "NIK",
-      "No HP",
-      "Jabatan",
-      "Luas (Ha)",
-      "Keterangan",
-    ]);
+    rows.push(["No", "Nama", "NIK", "No HP", "Jabatan", "Luas (Ha)", "Keterangan"]);
 
     anggotaSorted.forEach((a, idx) => {
       rows.push([
