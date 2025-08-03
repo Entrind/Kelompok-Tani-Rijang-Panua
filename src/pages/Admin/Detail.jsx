@@ -2,7 +2,7 @@
 import React, { useEffect, useState, useMemo } from "react";
 import { useParams, Link } from "react-router-dom";
 import { db } from "../../firebase";
-import { doc, getDoc, collection, getDocs, updateDoc, deleteDoc,addDoc,} from "firebase/firestore";
+import { doc, getDoc, collection, getDocs, updateDoc, deleteDoc,addDoc } from "firebase/firestore";
 
 import { MaterialReactTable } from "material-react-table";
 import { Box, IconButton } from "@mui/material";

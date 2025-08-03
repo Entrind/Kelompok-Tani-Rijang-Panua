@@ -2,13 +2,14 @@
 import React, { useEffect, useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { db } from "../../firebase";
-import { collection, getDocs, deleteDoc, doc } from "firebase/firestore";
+import { doc, setDoc, collection, getDocs, deleteDoc, addDoc, getDoc } from "firebase/firestore";
 
 import { MaterialReactTable } from "material-react-table";
 import { Box, IconButton } from "@mui/material";
 import { Visibility, Delete } from "@mui/icons-material";
 import Swal from "sweetalert2";
 import { toast } from "react-toastify";
+import KelompokFormModal from "../../components/forms/KelompokFormModal";
 
 import JSZip from "jszip";
 import { saveAs } from "file-saver";
@@ -21,45 +22,41 @@ const Admin = () => {
   const [modeSelect, setModeSelect] = useState(false);
   const navigate = useNavigate();
 
+  const [showKelompokModal, setShowKelompokModal] = useState(false);
+  const [editKelompokData, setEditKelompokData] = useState(null);
+
   /** === FETCH DATA KELOMPOK === */
+  const fetchKelompok = async () => {
+    try {
+      const snapshot = await getDocs(collection(db, "kelompok_tani"));
+
+      const data = await Promise.all(
+        snapshot.docs.map(async (docSnap) => {
+          const dataKelompok = { id: docSnap.id, ...docSnap.data() };
+
+          // Ambil sub-koleksi anggota
+          const anggotaRef = collection(docSnap.ref, "anggota");
+          const anggotaSnap = await getDocs(anggotaRef);
+          const anggota = anggotaSnap.docs.map((a) => a.data());
+
+          // Cari ketua, sekretaris, bendahara
+          const ketua = anggota.find((a) => a.jabatan === "Ketua")?.nama || "-";
+          const sekretaris = anggota.find((a) => a.jabatan === "Sekretaris")?.nama || "-";
+          const bendahara = anggota.find((a) => a.jabatan === "Bendahara")?.nama || "-";
+
+          return { ...dataKelompok, ketua, sekretaris, bendahara };
+        })
+      );
+
+      setKelompok(data);
+    } catch {
+      toast.error("Gagal memuat data kelompok");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
-    const fetchKelompok = async () => {
-      try {
-        const snapshot = await getDocs(collection(db, "kelompok_tani"));
-
-        const data = await Promise.all(
-          snapshot.docs.map(async (docSnap) => {
-            const dataKelompok = { id: docSnap.id, ...docSnap.data() };
-
-            // Ambil sub-koleksi anggota
-            const anggotaRef = collection(docSnap.ref, "anggota");
-            const anggotaSnap = await getDocs(anggotaRef);
-            const anggota = anggotaSnap.docs.map((a) => a.data());
-
-            // Cari ketua, sekretaris, bendahara
-            const ketua = anggota.find((a) => a.jabatan === "Ketua")?.nama || "-";
-            const sekretaris =
-              anggota.find((a) => a.jabatan === "Sekretaris")?.nama || "-";
-            const bendahara =
-              anggota.find((a) => a.jabatan === "Bendahara")?.nama || "-";
-
-            return {
-              ...dataKelompok,
-              ketua,
-              sekretaris,
-              bendahara,
-            };
-          })
-        );
-
-        setKelompok(data);
-      } catch {
-        toast.error("Gagal memuat data kelompok");
-      } finally {
-        setLoading(false);
-      }
-    };
-
     fetchKelompok();
   }, []);
 
@@ -87,7 +84,71 @@ const Admin = () => {
     }
   };
 
-  /** === HANDLE EXPORT ZIP EXCEL === */
+  /** === HANDLE TAMBAH KELOMPOK === */
+  const handleSubmitKelompok = async (formData) => {
+    try {
+      // Validasi kolom wajib
+      if (!formData.nama_kelompok || !formData.provinsi || !formData.kabupaten || !formData.kecamatan) {
+        await Swal.fire("Gagal", "Kolom wajib harus diisi!", "warning");
+        return;
+      }
+
+      let docRef;
+      if (formData.id_kelompok) {
+        // Cek apakah ID sudah ada
+        const checkDoc = await getDoc(doc(db, "kelompok_tani", formData.id_kelompok));
+        if (checkDoc.exists()) {
+          await Swal.fire("Gagal", `ID Kelompok "${formData.id_kelompok}" sudah ada!`, "error");
+          return;
+        }
+
+        // Pakai ID manual
+        docRef = doc(db, "kelompok_tani", formData.id_kelompok);
+        await setDoc(docRef, {
+          nama_kelompok: formData.nama_kelompok,
+          kategori: formData.kategori,
+          provinsi: formData.provinsi,
+          kabupaten: formData.kabupaten,
+          kecamatan: formData.kecamatan,
+          jumlah_anggota: 0,
+          total_lahan: 0,
+        });
+      } else {
+        // Auto ID
+        docRef = await addDoc(collection(db, "kelompok_tani"), {
+          nama_kelompok: formData.nama_kelompok,
+          kategori: formData.kategori,
+          provinsi: formData.provinsi,
+          kabupaten: formData.kabupaten,
+          kecamatan: formData.kecamatan,
+          jumlah_anggota: 0,
+          total_lahan: 0,
+        });
+      }
+
+      // Tambahkan ketua/sekretaris/bendahara jika ada
+      const anggotaColl = collection(docRef, "anggota");
+      if (formData.ketua) {
+        await addDoc(anggotaColl, { nama: formData.ketua, jabatan: "Ketua" });
+      }
+      if (formData.sekretaris) {
+        await addDoc(anggotaColl, { nama: formData.sekretaris, jabatan: "Sekretaris" });
+      }
+      if (formData.bendahara) {
+        await addDoc(anggotaColl, { nama: formData.bendahara, jabatan: "Bendahara" });
+      }
+
+      await Swal.fire("Sukses", "Kelompok berhasil ditambahkan!", "success");
+      setShowKelompokModal(false); // ✅ Tutup modal setelah submit
+
+      fetchKelompok(); // Refresh tabel
+    } catch (err) {
+      console.error(err);
+      Swal.fire("Error", "Terjadi kesalahan saat menambah kelompok", "error");
+    }
+  };
+
+  /** === EXPORT ZIP EXCEL === */
   const exportKelompokToZip = async (dataKelompok) => {
     if (!dataKelompok || dataKelompok.length === 0) {
       toast.warn("Tidak ada data yang dipilih untuk diexport!");
@@ -96,20 +157,16 @@ const Admin = () => {
 
     const zip = new JSZip();
 
-    // 🔹 Urutkan abjad A → Z
+    // Urutkan abjad A → Z
     const dataSorted = [...dataKelompok].sort((a, b) =>
       a.nama_kelompok.localeCompare(b.nama_kelompok)
     );
 
     for (const kelompok of dataSorted) {
-      const anggotaSnap = await getDocs(
-        collection(db, "kelompok_tani", kelompok.id, "anggota")
-      );
-      const anggota = anggotaSnap.docs.map((doc) => ({
-        id: doc.id,
-        ...doc.data(),
-      }));
+      const anggotaSnap = await getDocs(collection(db, "kelompok_tani", kelompok.id, "anggota"));
+      const anggota = anggotaSnap.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
 
+      // Urutkan anggota (jabatan → nama)
       const jabatanOrder = { Ketua: 1, Sekretaris: 2, Bendahara: 3, Anggota: 4 };
       const anggotaSorted = [...anggota].sort((a, b) => {
         const rankA = jabatanOrder[a.jabatan || "Anggota"];
@@ -118,7 +175,7 @@ const Admin = () => {
         return (a.nama || "").localeCompare(b.nama || "");
       });
 
-      // Buat rows
+      // Rows excel
       const rows = [];
       rows.push([]);
       rows.push(["", "Nama Kelompok Tani", kelompok.nama_kelompok]);
@@ -130,15 +187,7 @@ const Admin = () => {
       rows.push(["", "Jumlah Anggota", `${kelompok.jumlah_anggota || 0}`]);
       rows.push(["", "Total Lahan", `${kelompok.total_lahan || 0} Ha`]);
       rows.push([]);
-      rows.push([
-        "No",
-        "Nama",
-        "NIK",
-        "No HP",
-        "Jabatan",
-        "Luas (Ha)",
-        "Keterangan",
-      ]);
+      rows.push(["No", "Nama", "NIK", "No HP", "Jabatan", "Luas (Ha)", "Keterangan"]);
 
       anggotaSorted.forEach((a, idx) => {
         rows.push([
@@ -154,12 +203,12 @@ const Admin = () => {
 
       const ws = XLSX.utils.aoa_to_sheet(rows);
       ws["!cols"] = [
-        { wch: 5 },
-        { wch: 25 },
+        { wch: 5 }, 
+        { wch: 25 }, 
         { wch: 20 },
-        { wch: 15 },
-        { wch: 15 },
-        { wch: 10 },
+        { wch: 15 }, 
+        { wch: 15 }, 
+        { wch: 10 }, 
         { wch: 25 },
       ];
 
@@ -174,30 +223,22 @@ const Admin = () => {
     saveAs(content, "Data-Kelompok-Tani.zip");
   };
 
-  /** === HANDLE EXPORT TERPILIH === */
+  /** === EXPORT TERPILIH === */
   const handleExportSelected = async () => {
     const selected = kelompok.filter((k) => rowSelection[k.id]);
     await exportKelompokToZip(selected);
-
-    // ✅ Reset row selection & kembali ke mode normal
     setRowSelection({});
     setModeSelect(false);
   };
 
   /** === BADGE JABATAN === */
   const renderBadge = (label, type) => {
-    let colorClass = "bg-gray-300 text-gray-800"; // default
+    let colorClass = "bg-gray-300 text-gray-800";
     if (type === "Ketua") colorClass = "bg-green-100 text-green-800";
     if (type === "Sekretaris") colorClass = "bg-blue-100 text-blue-800";
     if (type === "Bendahara") colorClass = "bg-yellow-100 text-yellow-800";
 
-    return (
-      <span
-        className={`px-2 py-1 text-sm font-medium rounded-md ${colorClass}`}
-      >
-        {label}
-      </span>
-    );
+    return <span className={`px-2 py-1 text-sm font-medium rounded-md ${colorClass}`}>{label}</span>;
   };
 
   /** === COLUMNS MRT === */
@@ -212,26 +253,19 @@ const Admin = () => {
       {
         accessorKey: "ketua",
         header: "Ketua",
-        Cell: ({ cell }) =>
-          cell.getValue() !== "-"
-            ? renderBadge(cell.getValue(), "Ketua")
-            : "-",
+        Cell: ({ cell }) => (cell.getValue() !== "-" ? renderBadge(cell.getValue(), "Ketua") : "-"),
       },
       {
         accessorKey: "sekretaris",
         header: "Sekretaris",
         Cell: ({ cell }) =>
-          cell.getValue() !== "-"
-            ? renderBadge(cell.getValue(), "Sekretaris")
-            : "-",
+          cell.getValue() !== "-" ? renderBadge(cell.getValue(), "Sekretaris") : "-",
       },
       {
         accessorKey: "bendahara",
         header: "Bendahara",
         Cell: ({ cell }) =>
-          cell.getValue() !== "-"
-            ? renderBadge(cell.getValue(), "Bendahara")
-            : "-",
+          cell.getValue() !== "-" ? renderBadge(cell.getValue(), "Bendahara") : "-",
       },
       {
         accessorKey: "jumlah_anggota",
@@ -254,10 +288,7 @@ const Admin = () => {
             >
               <Visibility />
             </IconButton>
-            <IconButton
-              color="error"
-              onClick={() => handleDelete(row.original.id)}
-            >
+            <IconButton color="error" onClick={() => handleDelete(row.original.id)}>
               <Delete />
             </IconButton>
           </Box>
@@ -271,15 +302,14 @@ const Admin = () => {
 
   return (
     <div className="max-w-full mx-auto p-6">
-      {/* Judul Halaman */}
+      {/* Judul */}
       <div className="flex justify-between mb-4">
         <h1 className="text-2xl font-bold">Dashboard Admin</h1>
       </div>
 
-      {/* Tombol Aksi di atas tabel */}
+      {/* Tombol Aksi */}
       <div className="flex justify-end mb-2 gap-2">
         {!modeSelect ? (
-          // Tombol utama (pilih mode export)
           <button
             onClick={async () => {
               const result = await Swal.fire({
@@ -292,32 +322,16 @@ const Admin = () => {
               });
 
               if (result.isConfirmed) {
-                // Export semua langsung
                 await exportKelompokToZip(kelompok);
               } else if (result.dismiss === Swal.DismissReason.cancel) {
-                // Aktifkan mode select untuk memilih kelompok
                 setModeSelect(true);
               }
             }}
             className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 flex items-center"
           >
-            <svg
-              className="w-5 h-5 mr-2"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth="2"
-                d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-              />
-            </svg>
             Export ZIP Excel
           </button>
         ) : (
-          // Jika sedang mode select
           <>
             <button
               onClick={handleExportSelected}
@@ -337,13 +351,18 @@ const Admin = () => {
           </>
         )}
 
-        {/* Tombol Tambah Anggota */}
-        <button className="bg-lime-700 text-white px-4 py-2 rounded-md hover:bg-lime-800">
+        <button
+          onClick={() => {
+            setEditKelompokData(null);
+            setShowKelompokModal(true);
+          }}
+          className="bg-lime-700 text-white px-4 py-2 rounded-md hover:bg-lime-800"
+        >
           + Tambah Kelompok
         </button>
       </div>
 
-      {/* Tabel Data */}
+      {/* Tabel */}
       <MaterialReactTable
         columns={columns}
         data={kelompok}
@@ -357,26 +376,18 @@ const Admin = () => {
           sorting: [{ id: "nama_kelompok", desc: false }],
           pagination: { pageIndex: 0, pageSize: 10 },
         }}
-        muiTablePaperProps={{
-          elevation: 2,
-          sx: {
-            borderRadius: "1rem",
-            overflow: "hidden",
-            border: "1px solid #e5e7eb",
-          },
-        }}
-        muiTableHeadCellProps={{
-          align: "center",
-          sx: { fontWeight: "bold", backgroundColor: "#f3f4f6" },
-        }}
-        muiTableBodyCellProps={{
-          align: "center",
-          sx: { whiteSpace: "nowrap" },
-        }}
-        muiTableBodyRowProps={{
-          sx: {
-            "&:hover": { backgroundColor: "#f3f4f6" },
-          },
+      />
+
+      {/* Modal Tambah Kelompok */}
+      <KelompokFormModal
+        visible={showKelompokModal}
+        onClose={() => setShowKelompokModal(false)}
+        onSubmit={handleSubmitKelompok}
+        initialData={editKelompokData}
+        defaultRegion={{
+          provinsi: kelompok[0]?.provinsi || "Sulawesi Selatan",
+          kabupaten: kelompok[0]?.kabupaten || "Sidenreng Rappang",
+          kecamatan: kelompok[0]?.kecamatan || "Kulo",
         }}
       />
     </div>
