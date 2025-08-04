@@ -422,7 +422,7 @@ const Admin = () => {
   if (loading) return <div className="text-center py-10">Loading...</div>;
 
   return (
-    <div className="max-w-full mx-auto p-6">
+    <div className="max-w-full bg-slate-100 mx-auto p-6">
       {/* Judul */}
       <div className="flex justify-between mb-4">
         <h1 className="text-2xl font-bold">Dashboard Admin</h1>
