@@ -2,15 +2,16 @@
 import React, { useEffect, useState, useMemo } from "react";
 import { useParams, Link } from "react-router-dom";
 import { db } from "../../firebase";
-import { doc, getDoc, collection, getDocs, updateDoc, deleteDoc,addDoc } from "firebase/firestore";
+import { doc, getDoc, collection, getDocs, updateDoc, deleteDoc, addDoc, setDoc } from "firebase/firestore";
 
 import { MaterialReactTable } from "material-react-table";
 import { Box, IconButton } from "@mui/material";
-import { Edit, Delete, ArrowBack, BorderAllRounded } from "@mui/icons-material";
+import { Edit, Delete, ArrowBack } from "@mui/icons-material";
 
 import Swal from "sweetalert2";
 import { toast } from "react-toastify";
 import AnggotaFormModal from "../../components/forms/AnggotaFormModal";
+import KelompokFormModal from "../../components/forms/KelompokFormModal";
 
 import * as XLSX from "xlsx";
 
@@ -24,44 +25,42 @@ const Detail = () => {
   // Modal tambah/edit
   const [showModal, setShowModal] = useState(false);
   const [editData, setEditData] = useState(null);
+  const [showKelompokModal, setShowKelompokModal] = useState(false);
 
   /** === Fetch data detail & anggota === */
-  useEffect(() => {
-    const fetchDetail = async () => {
-      try {
-        const docRef = doc(db, "kelompok_tani", id);
-        const kelompokSnap = await getDoc(docRef);
+  const fetchKelompok = async () => {
+    try {
+      const docRef = doc(db, "kelompok_tani", id);
+      const kelompokSnap = await getDoc(docRef);
 
-        if (kelompokSnap.exists()) {
-          const data = { id: kelompokSnap.id, ...kelompokSnap.data() };
-          setKelompok(data);
-          
-          const anggotaRef = collection(docRef, "anggota");
-          const anggotaSnap = await getDocs(anggotaRef);
-          const hasil = anggotaSnap.docs.map((doc) => ({
-            id: doc.id,
-            ...doc.data(),
-          }));
-          setAnggota(hasil);
-        }
-      } catch (err) {
-        console.error("Gagal ambil detail:", err);
-        toast.error("Gagal memuat data");
-      } finally {
-        setLoading(false);
+      if (kelompokSnap.exists()) {
+        const data = { id: kelompokSnap.id, ...kelompokSnap.data() };
+        setKelompok(data);
+
+        const anggotaRef = collection(docRef, "anggota");
+        const anggotaSnap = await getDocs(anggotaRef);
+        const hasil = anggotaSnap.docs.map((doc) => ({
+          id: doc.id,
+          ...doc.data(),
+        }));
+        setAnggota(hasil);
       }
-    };
+    } catch (err) {
+      console.error("Gagal ambil detail:", err);
+      toast.error("Gagal memuat data");
+    } finally {
+      setLoading(false);
+    }
+  };
 
-    fetchDetail();
+  useEffect(() => {
+    fetchKelompok();
   }, [id]);
 
   /** === ACTION === */
   const updateSummary = async (data) => {
       const jumlah = data.length;
-      const totalLahan = data.reduce(
-        (sum, a) => sum + (a.luas ? Number(a.luas) : 0),
-        0
-      );
+      const totalLahan = data.reduce((sum, a) => sum + (a.luas ? Number(a.luas) : 0), 0);
 
       await updateDoc(doc(db, "kelompok_tani", id), {
         jumlah_anggota: jumlah,
@@ -125,15 +124,11 @@ const Detail = () => {
         const anggotaRef = doc(db, "kelompok_tani", id, "anggota", editData.id);
         await updateDoc(anggotaRef, data);
 
-        // Update data anggota di state
-        setAnggota((prev) => {
-          const updated = prev.map((a) =>
-            a.id === editData.id ? { ...a, ...data } : a
-          );
-        
-          updateSummary(updated);
-          return updated;
-        });
+        const updated = anggota.map((a) =>
+          a.id === editData.id ? { ...a, ...data } : a
+        );
+        setAnggota(updated);
+        updateSummary(updated);
 
         toast.success("Data anggota berhasil diperbarui");
       } else {
@@ -149,7 +144,6 @@ const Detail = () => {
 
         toast.success("Anggota baru berhasil ditambahkan");
       }
-
       setShowModal(false);
     } catch (error) {
       console.error(error);
@@ -306,6 +300,26 @@ const Detail = () => {
     [loadingAction]
   );
 
+  const handleEditKelompok = async (formData) => {
+    try {
+      const docRef = doc(db, "kelompok_tani", kelompok.id);
+      await setDoc(docRef, {
+        nama_kelompok: formData.nama_kelompok,
+        kategori: formData.kategori,
+        provinsi: formData.provinsi,
+        kabupaten: formData.kabupaten,
+        kecamatan: formData.kecamatan,
+      }, { merge: true });
+
+      await Swal.fire("Sukses", "Data kelompok berhasil diperbarui", "success");
+      fetchKelompok();
+      setShowKelompokModal(false);
+    } catch (err) {
+      console.error(err);
+      Swal.fire("Error", "Gagal memperbarui data kelompok", "error");
+    }
+  };
+
   if (loading) return <div className="text-center py-10">Loading...</div>;
 
   return (
@@ -322,18 +336,28 @@ const Detail = () => {
       </div>
 
       {/* Info kelompok tani */}
-      <div className="bg-white p-4 rounded-xl shadow-md mb-5 text-base">
-        <h1 className="text-2xl font-bold mb-2">{kelompok?.nama_kelompok}</h1>
+      <div className="relative bg-white p-4 rounded-xl shadow-md mb-5 text-base">
+        <div className="flex justify-between items-start mb-2">
+          <h1 className="text-2xl font-bold">{kelompok?.nama_kelompok}</h1>
+          <IconButton
+            onClick={() => setShowKelompokModal(true)}
+            className="text-blue-600 hover:text-blue-800"
+          >
+            <Edit fontSize="medium" />
+          </IconButton>
+        </div>
+
         <div className="grid grid-cols-1 md:grid-cols-2 gap-1 text-gray-700">
-          <p className="col-start-1 row-start-1">Kategori: <strong>{kelompok?.kategori || "Kelompok Tani"}</strong></p>
-          <p className="col-start-1 row-start-2">ID Kelompok: <strong>{kelompok.id}</strong></p>
-          <p className="col-start-1 row-start-3">Provinsi: <strong>{kelompok.provinsi}</strong></p>
-          <p className="col-start-1 row-start-4">Kabupaten: <strong>{kelompok.kabupaten}</strong></p>
+          <p>Kategori: <strong>{kelompok?.kategori || "Kelompok Tani"}</strong></p>
+          <p>ID Kelompok: <strong>{kelompok.id}</strong></p>
+          <p>Provinsi: <strong>{kelompok.provinsi}</strong></p>
+          <p>Kabupaten: <strong>{kelompok.kabupaten}</strong></p>
           <p>Kecamatan: <strong>{kelompok.kecamatan}</strong></p>
           <p>Jumlah Anggota: <strong>{kelompok.jumlah_anggota || 0}</strong></p>
-          <p>Total Lahan: <strong>{kelompok.total_lahan || 0} Ha</strong></p>
+          <p>Total Lahan: <strong>{(kelompok.total_lahan || 0).toFixed(2)} Ha</strong></p>
         </div>
       </div>
+
 
       {/* Tombol export & tambah anggota */}
       <div className="flex justify-end mb-2 gap-2">
@@ -418,6 +442,18 @@ const Detail = () => {
         onClose={() => setShowModal(false)}
         onSubmit={handleSubmitModal}
         initialData={editData}
+      />
+
+      <KelompokFormModal
+        visible={showKelompokModal}
+        onClose={() => setShowKelompokModal(false)}
+        onSubmit={handleEditKelompok}
+        initialData={kelompok}
+        defaultRegion={{
+          provinsi: kelompok.provinsi,
+          kabupaten: kelompok.kabupaten,
+          kecamatan: kelompok.kecamatan,
+        }}
       />
     </div>
   );
