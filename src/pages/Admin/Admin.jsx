@@ -267,7 +267,21 @@ const Admin = () => {
       {
         accessorKey: "kategori",
         header: "Kategori",
-        Cell: ({ cell }) => cell.getValue() || "Kelompok Tani",
+        Cell: ({ cell }) => {
+          const value = cell.getValue() || "Kelompok Tani";
+          let colorClass = "bg-gray-200 text-gray-800";
+
+          if (value === "Kelompok Tani") colorClass = "bg-green-800 text-green-100";
+          else if (value === "Kelompok Kebun") colorClass = "bg-amber-800 text-amber-100";
+          else if (value === "KWT") colorClass = "bg-pink-800 text-pink-100";
+          else if (value === "Gapoktan") colorClass = "bg-lime-900 text-lime-100";
+
+          return (
+            <span className={`px-2 py-1 text-sm font-medium rounded-md ${colorClass}`}>
+              {value}
+            </span>
+          );
+        },
       },
       {
         accessorKey: "ketua",
@@ -403,7 +417,7 @@ const Admin = () => {
         state={{ rowSelection }}
         onRowSelectionChange={setRowSelection}
         enableColumnActions={false}
-        enableColumnFilters={false}
+        enableColumnFilters={true}
         initialState={{
           sorting: [{ id: "nama_kelompok", desc: false }],
           pagination: { pageIndex: 0, pageSize: 10 },

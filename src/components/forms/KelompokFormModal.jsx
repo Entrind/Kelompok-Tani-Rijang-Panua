@@ -30,10 +30,15 @@ const KelompokFormModal = ({ visible, onClose, onSubmit, initialData, defaultReg
     } else {
       setForm((prev) => ({
         ...prev,
+        id_kelompok: "",
+        nama_kelompok: "",
         kategori: "",
         provinsi: defaultRegion?.provinsi || "",
         kabupaten: defaultRegion?.kabupaten || "",
         kecamatan: defaultRegion?.kecamatan || "",
+        ketua: "",
+        sekretaris: "",
+        bendahara: "",
       }));
     }
   }, [initialData, defaultRegion]);
