@@ -24,6 +24,10 @@ const Admin = () => {
 
   const [showKelompokModal, setShowKelompokModal] = useState(false);
   const [editKelompokData, setEditKelompokData] = useState(null);
+  const [jumlahKelompok, setJumlahKelompok] = useState(0);
+  const [totalAnggota, setTotalAnggota] = useState(0);
+  const [, setTotalLahan] = useState(0);
+  const [totalLahanFormatted, setTotalLahanFormatted] = useState("0.00 Ha");
 
   /** === FETCH DATA KELOMPOK === */
   const fetchKelompok = async () => {
@@ -56,8 +60,36 @@ const Admin = () => {
     }
   };
 
+  const fetchStatistik = async () => {
+    try {
+      const kelompokSnap = await getDocs(collection(db, "kelompok_tani"));
+      setJumlahKelompok(kelompokSnap.size);
+
+      let totalAnggotaCount = 0;
+      let totalLuas = 0;
+
+      for (const docKelompok of kelompokSnap.docs) {
+        const anggotaSnap = await getDocs(collection(docKelompok.ref, "anggota"));
+        totalAnggotaCount += anggotaSnap.size;
+
+        anggotaSnap.forEach((docAnggota) => {
+          const data = docAnggota.data();
+          const luas = parseFloat(data.luas || 0);
+          totalLuas += luas;
+        });
+      }
+
+      setTotalAnggota(totalAnggotaCount);
+      setTotalLahan(totalLuas);
+      setTotalLahanFormatted(totalLuas.toFixed(2) + " Ha");
+    } catch (err) {
+      console.error("Gagal ambil statistik:", err);
+    }
+  };
+
   useEffect(() => {
     fetchKelompok();
+    fetchStatistik();
   }, []);
 
   /** === HANDLE DELETE === */
@@ -277,6 +309,13 @@ const Admin = () => {
     return <span className={`px-2 py-1 text-sm font-medium rounded-md ${colorClass}`}>{label}</span>;
   };
 
+  const kategoriOrder = {
+    "Gapoktan": 1,
+    "Kelompok Tani": 2,
+    "Kelompok Kebun": 3,
+    "KWT": 4,
+  };
+
   /** === COLUMNS MRT === */
   const columns = useMemo(
     () => [
@@ -284,19 +323,35 @@ const Admin = () => {
       {
         accessorKey: "kategori",
         header: "Kategori",
+        sortingFn: (rowA, rowB) => {
+          const katA = rowA.getValue("kategori") || "Kelompok Tani";
+          const katB = rowB.getValue("kategori") || "Kelompok Tani";
+          const rankA = kategoriOrder[katA] || 99;
+          const rankB = kategoriOrder[katB] || 99;
+
+          if (rankA !== rankB) {
+            return rankA - rankB;
+          }
+
+          // Jika kategori sama, urutkan berdasarkan nama_kelompok
+          const namaA = rowA.original.nama_kelompok?.toLowerCase() || "";
+          const namaB = rowB.original.nama_kelompok?.toLowerCase() || "";
+          return namaA.localeCompare(namaB);
+        },
         Cell: ({ cell }) => {
           const value = cell.getValue() || "Kelompok Tani";
-          let colorClass = "bg-gray-200 text-gray-800";
-
-          if (value === "Kelompok Tani") colorClass = "bg-green-800 text-green-100";
-          else if (value === "Kelompok Kebun") colorClass = "bg-amber-800 text-amber-100";
-          else if (value === "KWT") colorClass = "bg-pink-800 text-pink-100";
-          else if (value === "Gapoktan") colorClass = "bg-lime-900 text-lime-100";
-
+          const colorMap = {
+            "Gapoktan": "bg-lime-900 text-lime-100",
+            "Kelompok Tani": "bg-green-800 text-green-100",
+            "Kelompok Kebun": "bg-amber-800 text-amber-100",
+            "KWT": "bg-pink-800 text-pink-100",
+          };
           return (
-            <span className={`px-2 py-1 text-sm font-medium rounded-md ${colorClass}`}>
-              {value}
-            </span>
+            <div className="flex justify-center">
+              <span className={`px-2 py-1 text-sm font-medium rounded-md ${colorMap[value]}`}>
+                {value}
+              </span>
+            </div>
           );
         },
       },
@@ -325,7 +380,7 @@ const Admin = () => {
       {
         accessorKey: "total_lahan",
         header: "Total Lahan (Ha)",
-        Cell: ({ cell }) => (cell.getValue() || 0).toFixed(2),
+        Cell: ({ cell }) => (cell.getValue() || 0).toFixed(2) + " Ha",
       },
       {
         header: "Aksi",
@@ -357,6 +412,13 @@ const Admin = () => {
     []
   );
 
+  const StatCard = ({ title, value }) => (
+    <div className="bg-white p-4 shadow rounded-lg text-center">
+      <h3 className="text-gray-600 text-sm">{title}</h3>
+      <p className="text-2xl font-bold text-gray-800 mt-1">{value}</p>
+    </div>
+  );
+
   if (loading) return <div className="text-center py-10">Loading...</div>;
 
   return (
@@ -364,6 +426,13 @@ const Admin = () => {
       {/* Judul */}
       <div className="flex justify-between mb-4">
         <h1 className="text-2xl font-bold">Dashboard Admin</h1>
+      </div>
+
+      {/* Statistik */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 mb-6">
+        <StatCard title="Jumlah Kelompok" value={jumlahKelompok} />
+        <StatCard title="Total Anggota" value={totalAnggota} />
+        <StatCard title="Total Lahan" value={totalLahanFormatted} />
       </div>
 
       {/* Tombol Aksi */}
@@ -446,7 +515,7 @@ const Admin = () => {
         enableColumnActions={false}
         enableColumnFilters={true}
         initialState={{
-          sorting: [{ id: "nama_kelompok", desc: false }],
+          sorting: [{ id: "kategori", desc: false }],
           pagination: { pageIndex: 0, pageSize: 10 },
         }}
         muiTablePaperProps={{
