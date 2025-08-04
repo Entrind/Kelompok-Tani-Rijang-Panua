@@ -2,7 +2,7 @@
 import React, { useEffect, useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { db } from "../../firebase";
-import { doc, setDoc, collection, getDocs, deleteDoc, addDoc, getDoc } from "firebase/firestore";
+import { doc, setDoc, collection, getDocs, deleteDoc, addDoc, getDoc, writeBatch } from "firebase/firestore";
 
 import { MaterialReactTable } from "material-react-table";
 import { Box, IconButton } from "@mui/material";
@@ -64,7 +64,7 @@ const Admin = () => {
   const handleDelete = async (id) => {
     const result = await Swal.fire({
       title: "Hapus Kelompok?",
-      text: "Data kelompok ini akan dihapus permanen.",
+      text: "Seluruh data anggota juga akan dihapus permanen.",
       icon: "warning",
       showCancelButton: true,
       confirmButtonText: "Ya, hapus!",
@@ -76,11 +76,23 @@ const Admin = () => {
     if (!result.isConfirmed) return;
 
     try {
+      // 1. Hapus semua dokumen dalam subcollection "anggota"
+      const anggotaRef = collection(db, "kelompok_tani", id, "anggota");
+      const anggotaSnap = await getDocs(anggotaRef);
+
+      const batch = writeBatch(db);
+      anggotaSnap.forEach((doc) => batch.delete(doc.ref));
+      await batch.commit();
+
+      // 2. Hapus dokumen kelompoknya
       await deleteDoc(doc(db, "kelompok_tani", id));
+
+      // 3. Update UI
       setKelompok((prev) => prev.filter((k) => k.id !== id));
-      toast.success("Kelompok berhasil dihapus");
-    } catch {
-      toast.error("Gagal menghapus kelompok");
+      toast.success("Kelompok dan data anggotanya berhasil dihapus");
+    } catch (err) {
+      console.error(err);
+      toast.error("Gagal menghapus data kelompok");
     }
   };
 
