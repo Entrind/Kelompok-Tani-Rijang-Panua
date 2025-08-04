@@ -94,6 +94,7 @@ const KelompokFormModal = ({ visible, onClose, onSubmit, initialData, defaultReg
           value={form.id_kelompok}
           onChange={(e) => handleChange("id_kelompok", e.target.value)}
           className="bg-white border p-2 w-full rounded mb-2"
+          disabled={!!initialData}
         />
 
         {/* Nama kelompok */}
@@ -111,9 +112,9 @@ const KelompokFormModal = ({ visible, onClose, onSubmit, initialData, defaultReg
             form.kategori === "" ? "text-gray-400" : "text-black"
           }`}
           value={form.kategori}
-          onChange={(e) => setForm({ ...form, kategori: e.target.value })}
+          onChange={(e) => handleChange("kategori", e.target.value)}
         >
-          <option value="" disabled selected>Pilih Kategori Kelompok</option>
+          <option value="" disabled>Pilih Kategori Kelompok</option>
           <option value="Kelompok Tani">Kelompok Tani</option>
           <option value="Kelompok Kebun">Kelompok Kebun</option>
           <option value="KWT">KWT</option>
@@ -144,27 +145,31 @@ const KelompokFormModal = ({ visible, onClose, onSubmit, initialData, defaultReg
         />
 
         {/* Ketua, Sekretaris, Bendahara (opsional) */}
-        <input
-          type="text"
-          placeholder="Nama Ketua (opsional)"
-          value={form.ketua}
-          onChange={(e) => handleChange("ketua", e.target.value)}
-          className="bg-white border p-2 w-full rounded mb-2"
-        />
-        <input
-          type="text"
-          placeholder="Nama Sekretaris (opsional)"
-          value={form.sekretaris}
-          onChange={(e) => handleChange("sekretaris", e.target.value)}
-          className="bg-white border p-2 w-full rounded mb-2"
-        />
-        <input
-          type="text"
-          placeholder="Nama Bendahara (opsional)"
-          value={form.bendahara}
-          onChange={(e) => handleChange("bendahara", e.target.value)}
-          className="bg-white border p-2 w-full rounded mb-2"
-        />
+        {!initialData && (
+          <>
+            <input
+              type="text"
+              placeholder="Nama Ketua (opsional)"
+              value={form.ketua}
+              onChange={(e) => handleChange("ketua", e.target.value)}
+              className="bg-white border p-2 w-full rounded mb-2"
+            />
+            <input
+              type="text"
+              placeholder="Nama Sekretaris (opsional)"
+              value={form.sekretaris}
+              onChange={(e) => handleChange("sekretaris", e.target.value)}
+              className="bg-white border p-2 w-full rounded mb-2"
+            />
+            <input
+              type="text"
+              placeholder="Nama Bendahara (opsional)"
+              value={form.bendahara}
+              onChange={(e) => handleChange("bendahara", e.target.value)}
+              className="bg-white border p-2 w-full rounded mb-2"
+            />
+          </>
+        )}
 
         {/* Tombol aksi */}
         <div className="flex justify-end space-x-2 mt-6">

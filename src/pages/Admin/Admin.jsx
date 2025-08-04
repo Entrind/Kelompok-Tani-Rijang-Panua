@@ -6,7 +6,7 @@ import { doc, setDoc, collection, getDocs, deleteDoc, addDoc, getDoc, writeBatch
 
 import { MaterialReactTable } from "material-react-table";
 import { Box, IconButton } from "@mui/material";
-import { Visibility, Delete } from "@mui/icons-material";
+import { GroupAdd, Article, Edit, Delete } from "@mui/icons-material";
 import Swal from "sweetalert2";
 import { toast } from "react-toastify";
 import KelompokFormModal from "../../components/forms/KelompokFormModal";
@@ -100,44 +100,56 @@ const Admin = () => {
   const handleSubmitKelompok = async (formData) => {
     try {
       // Validasi kolom wajib
-      if (!formData.nama_kelompok || !formData.provinsi || !formData.kabupaten || !formData.kecamatan) {
+      if (!formData.nama_kelompok || !formData.kategori || !formData.provinsi || !formData.kabupaten || !formData.kecamatan) {
         await Swal.fire("Gagal", "Kolom wajib harus diisi!", "warning");
         return;
       }
 
       let docRef;
-      if (formData.id_kelompok) {
-        // Cek apakah ID sudah ada
-        const checkDoc = await getDoc(doc(db, "kelompok_tani", formData.id_kelompok));
-        if (checkDoc.exists()) {
-          await Swal.fire("Gagal", `ID Kelompok "${formData.id_kelompok}" sudah ada!`, "error");
-          return;
-        }
 
-        // Pakai ID manual
-        docRef = doc(db, "kelompok_tani", formData.id_kelompok);
+      // MODE: EDIT
+      if (editKelompokData?.id) {
+        docRef = doc(db, "kelompok_tani", editKelompokData.id);
         await setDoc(docRef, {
           nama_kelompok: formData.nama_kelompok,
           kategori: formData.kategori,
           provinsi: formData.provinsi,
           kabupaten: formData.kabupaten,
           kecamatan: formData.kecamatan,
-          jumlah_anggota: 0,
-          total_lahan: 0,
-        });
-      } else {
-        // Auto ID
-        docRef = await addDoc(collection(db, "kelompok_tani"), {
-          nama_kelompok: formData.nama_kelompok,
-          kategori: formData.kategori,
-          provinsi: formData.provinsi,
-          kabupaten: formData.kabupaten,
-          kecamatan: formData.kecamatan,
-          jumlah_anggota: 0,
-          total_lahan: 0,
-        });
-      }
+        }, { merge: true });
 
+        await Swal.fire("Sukses", "Data kelompok berhasil diperbarui", "success");
+      } 
+      // MODE: TAMBAH BARU
+      else {
+        if (formData.id_kelompok) {
+          const checkDoc = await getDoc(doc(db, "kelompok_tani", formData.id_kelompok));
+          if (checkDoc.exists()) {
+            await Swal.fire("Gagal", `ID Kelompok "${formData.id_kelompok}" sudah ada!`, "error");
+            return;
+          }
+          docRef = doc(db, "kelompok_tani", formData.id_kelompok);
+          await setDoc(docRef, {
+            nama_kelompok: formData.nama_kelompok,
+            kategori: formData.kategori,
+            provinsi: formData.provinsi,
+            kabupaten: formData.kabupaten,
+            kecamatan: formData.kecamatan,
+            jumlah_anggota: 0,
+            total_lahan: 0,
+          });
+        } else {
+          docRef = await addDoc(collection(db, "kelompok_tani"), {
+            nama_kelompok: formData.nama_kelompok,
+            kategori: formData.kategori,
+            provinsi: formData.provinsi,
+            kabupaten: formData.kabupaten,
+            kecamatan: formData.kecamatan,
+            jumlah_anggota: 0,
+            total_lahan: 0,
+          });
+        }
+    
       // Tambahkan ketua/sekretaris/bendahara jika ada
       const anggotaColl = collection(docRef, "anggota");
       let anggotaCount = 0;
@@ -157,21 +169,14 @@ const Admin = () => {
 
       // Update jumlah anggota di dokumen kelompok
       if (anggotaCount > 0) {
-        const currentData = await getDoc(docRef);
-        const currentCount = currentData.exists() ? currentData.data().jumlah_anggota || 0 : 0;
-
-        await setDoc(
-          docRef,
-          {
-            jumlah_anggota: currentCount + anggotaCount,
-          },
-          { merge: true }
-        );
+        await setDoc(docRef, { jumlah_anggota: anggotaCount }, { merge: true });
       }
 
       await Swal.fire("Sukses", "Kelompok berhasil ditambahkan!", "success");
-      setShowKelompokModal(false); // ✅ Tutup modal setelah submit
+      }
 
+      setShowKelompokModal(false);
+      setEditKelompokData(null); 
       fetchKelompok(); // Refresh tabel
     } catch (err) {
       console.error(err);
@@ -328,10 +333,19 @@ const Admin = () => {
         Cell: ({ row }) => (
           <Box display="flex" gap={1} justifyContent="center">
             <IconButton
-              color="primary"
+              color="success"
               onClick={() => navigate(`/admin/detail/${row.original.id}`)}
             >
-              <Visibility />
+              <Article />
+            </IconButton>
+            <IconButton
+              color="primary"
+              onClick={() => {
+                setEditKelompokData(row.original);
+                setShowKelompokModal(true);
+              }}
+            >
+              <Edit />
             </IconButton>
             <IconButton color="error" onClick={() => handleDelete(row.original.id)}>
               <Delete />
@@ -416,7 +430,8 @@ const Admin = () => {
           }}
           className="bg-lime-700 text-white px-4 py-2 rounded-md hover:bg-lime-800"
         >
-          + Tambah Kelompok
+          <GroupAdd fontSize="small" className="mb-1 mr-1.5"/>
+          Tambah Kelompok
         </button>
       </div>
 
