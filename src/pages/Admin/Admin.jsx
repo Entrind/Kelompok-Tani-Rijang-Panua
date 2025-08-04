@@ -325,7 +325,7 @@ const Admin = () => {
       {
         accessorKey: "total_lahan",
         header: "Total Lahan (Ha)",
-        Cell: ({ cell }) => cell.getValue() || 0,
+        Cell: ({ cell }) => (cell.getValue() || 0).toFixed(2),
       },
       {
         header: "Aksi",
