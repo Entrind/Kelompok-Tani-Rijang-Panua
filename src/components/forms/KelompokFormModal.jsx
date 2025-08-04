@@ -5,7 +5,7 @@ const KelompokFormModal = ({ visible, onClose, onSubmit, initialData, defaultReg
   const [form, setForm] = useState({
     id_kelompok: "",
     nama_kelompok: "",
-    kategori: "Kelompok Tani",
+    kategori: "",
     provinsi: defaultRegion?.provinsi || "",
     kabupaten: defaultRegion?.kabupaten || "",
     kecamatan: defaultRegion?.kecamatan || "",
@@ -30,6 +30,7 @@ const KelompokFormModal = ({ visible, onClose, onSubmit, initialData, defaultReg
     } else {
       setForm((prev) => ({
         ...prev,
+        kategori: "",
         provinsi: defaultRegion?.provinsi || "",
         kabupaten: defaultRegion?.kabupaten || "",
         kecamatan: defaultRegion?.kecamatan || "",
@@ -52,8 +53,8 @@ const KelompokFormModal = ({ visible, onClose, onSubmit, initialData, defaultReg
   };
 
   const handleSubmit = async () => {
-    if (!form.nama_kelompok || !form.provinsi || !form.kabupaten || !form.kecamatan) {
-      await Swal.fire("Oops", "Kolom wajib (Nama, Provinsi, Kabupaten, Kecamatan) harus diisi!", "warning");
+    if (!form.nama_kelompok || !form.kategori || !form.provinsi || !form.kabupaten || !form.kecamatan) {
+      await Swal.fire("Oops", "Kolom wajib (Nama, Kategori, Provinsi, Kabupaten, Kecamatan) harus diisi!", "warning");
       return;
     }
 
@@ -70,6 +71,8 @@ const KelompokFormModal = ({ visible, onClose, onSubmit, initialData, defaultReg
     };
 
     onSubmit(data);
+
+    onClose();
   };
 
   return (
@@ -96,6 +99,21 @@ const KelompokFormModal = ({ visible, onClose, onSubmit, initialData, defaultReg
           onChange={(e) => handleChange("nama_kelompok", e.target.value)}
           className="bg-white border p-2 w-full rounded mb-2"
         />
+
+        {/* Kategori Kelompok */}
+        <select
+          className={`w-full bg-white border rounded-md mb-2 px-3 py-2 ${
+            form.kategori === "" ? "text-gray-400" : "text-black"
+          }`}
+          value={form.kategori}
+          onChange={(e) => setForm({ ...form, kategori: e.target.value })}
+        >
+          <option value="" disabled selected>Pilih Kategori Kelompok</option>
+          <option value="Kelompok Tani">Kelompok Tani</option>
+          <option value="Kelompok Kebun">Kelompok Kebun</option>
+          <option value="KWT">KWT</option>
+          <option value="Gapoktan">Gapoktan</option>
+        </select>
 
         {/* Provinsi, Kabupaten, Kecamatan */}
         <input

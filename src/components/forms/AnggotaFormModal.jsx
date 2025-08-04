@@ -20,7 +20,7 @@ const AnggotaFormModal = ({ visible, onClose, onSubmit, initialData }) => {
         nama: "",
         nik: "",
         no_hp: "",
-        luas: 0,
+        luas: "",
         jabatan: "",
         ket: "",
       });
@@ -91,9 +91,11 @@ const AnggotaFormModal = ({ visible, onClose, onSubmit, initialData }) => {
           <select
             value={form.jabatan}
             onChange={(e) => handleChange("jabatan", e.target.value)}
-            className="bg-white border p-2 w-full rounded"
+            className={`w-full bg-white border rounded p-2 ${
+              form.jabatan === "" ? "text-gray-400" : "text-black"
+            }`}
           >
-            <option value="">- Pilih Jabatan -</option>
+            <option value="" disabled selected>Pilih Jabatan</option>
             <option value="Ketua">Ketua</option>
             <option value="Sekretaris">Sekretaris</option>
             <option value="Bendahara">Bendahara</option>
