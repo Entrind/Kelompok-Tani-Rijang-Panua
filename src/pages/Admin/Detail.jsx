@@ -7,6 +7,7 @@ import { doc, getDoc, collection, getDocs, updateDoc, deleteDoc, addDoc, setDoc 
 import { MaterialReactTable } from "material-react-table";
 import { Box, IconButton } from "@mui/material";
 import { Edit, Delete, ArrowBack } from "@mui/icons-material";
+import PersonAddAlt1Icon from '@mui/icons-material/PersonAddAlt1';
 
 import Swal from "sweetalert2";
 import { toast } from "react-toastify";
@@ -348,10 +349,10 @@ const Detail = () => {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-1 text-gray-700">
-          <p>Kategori: <strong>{kelompok?.kategori || "Kelompok Tani"}</strong></p>
-          <p>ID Kelompok: <strong>{kelompok.id}</strong></p>
-          <p>Provinsi: <strong>{kelompok.provinsi}</strong></p>
-          <p>Kabupaten: <strong>{kelompok.kabupaten}</strong></p>
+          <p className="col-start-1 row-start-1">Kategori: <strong>{kelompok?.kategori || "Kelompok Tani"}</strong></p>
+          <p className="col-start-1 row-start-2">ID Kelompok: <strong>{kelompok.id}</strong></p>
+          <p className="col-start-1 row-start-3">Provinsi: <strong>{kelompok.provinsi}</strong></p>
+          <p className="col-start-1 row-start-4">Kabupaten: <strong>{kelompok.kabupaten}</strong></p>
           <p>Kecamatan: <strong>{kelompok.kecamatan}</strong></p>
           <p>Jumlah Anggota: <strong>{kelompok.jumlah_anggota || 0}</strong></p>
           <p>Total Lahan: <strong>{(kelompok.total_lahan || 0).toFixed(2)} Ha</strong></p>
@@ -380,7 +381,8 @@ const Detail = () => {
           onClick={handleTambah}
           className="bg-lime-700 text-white px-4 py-2 rounded-md hover:bg-lime-800"
         >
-          + Tambah Anggota
+          <PersonAddAlt1Icon fontSize="small" className="mb-1 mr-1.5"/>
+          Tambah Anggota
         </button>
       </div>
 
