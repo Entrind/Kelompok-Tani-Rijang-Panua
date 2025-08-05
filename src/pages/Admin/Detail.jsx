@@ -60,20 +60,33 @@ const Detail = () => {
 
   /** === ACTION === */
   const updateSummary = async (data) => {
-      const jumlah = data.length;
-      const totalLahan = data.reduce((sum, a) => sum + (a.luas ? Number(a.luas) : 0), 0);
+    const jumlah = data.length;
+    const totalLahan = data.reduce(
+      (sum, a) => sum + (a.luas ? Number(a.luas) : 0),
+      0
+    );
 
-      await updateDoc(doc(db, "kelompok_tani", id), {
-        jumlah_anggota: jumlah,
-        total_lahan: totalLahan,
-      });
+    const ketua = data.find((a) => a.jabatan === "Ketua")?.nama || "";
+    const sekretaris = data.find((a) => a.jabatan === "Sekretaris")?.nama || "";
+    const bendahara = data.find((a) => a.jabatan === "Bendahara")?.nama || "";
 
-      setKelompok((prev) => ({
-        ...prev,
-        jumlah_anggota: jumlah,
-        total_lahan: totalLahan,
-      }));
-    };
+    await updateDoc(doc(db, "kelompok_tani", id), {
+      jumlah_anggota: jumlah,
+      total_lahan: totalLahan,
+      ketua,
+      sekretaris,
+      bendahara,
+    });
+
+    setKelompok((prev) => ({
+      ...prev,
+      jumlah_anggota: jumlah,
+      total_lahan: totalLahan,
+      ketua,
+      sekretaris,
+      bendahara,
+    }));
+  };
     
   const handleDelete = async (anggotaId) => {
     const result = await Swal.fire({
