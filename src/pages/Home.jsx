@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from "react";
 import { db } from "../firebase";
-import { collection, getDocs, query, where, limit } from "firebase/firestore";
+import { collection, getDocs, query, where } from "firebase/firestore";
 import CardKelompok from "../components/cards/CardKelompok";
-//import Link from "next/link";
+// import Link from "next/link";
 
 const kategoriList = [
   { label: "Gapoktan", warna: "bg-lime-700", nama: "Gapoktan" },
@@ -20,11 +20,19 @@ export default function Home() {
       for (const kategori of kategoriList) {
         const q = query(
           collection(db, "kelompok_tani"),
-          where("kategori", "==", kategori.nama),
-          limit(4)
+          where("kategori", "==", kategori.nama)
         );
         const snap = await getDocs(q);
-        result[kategori.nama] = snap.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+
+        // Sort by nama_kelompok (case-insensitive) lalu ambil 4 teratas
+        const sorted = snap.docs
+          .map((doc) => ({ id: doc.id, ...doc.data() }))
+          .sort((a, b) =>
+            (a.nama_kelompok || "").toLowerCase().localeCompare((b.nama_kelompok || "").toLowerCase())
+          )
+          .slice(0, 4);
+
+        result[kategori.nama] = sorted;
       }
       setDataPerKategori(result);
     };
@@ -40,7 +48,7 @@ export default function Home() {
         </div>
       </div>
 
-      {/* Statistik (dummy sementara) */}
+      {/* Statistik */}
       <div className="bg-white py-8 px-4 grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
         <div>
           <p className="text-2xl font-bold text-green-700">12</p>
@@ -60,17 +68,12 @@ export default function Home() {
         </div>
       </div>
 
-      {/* Card Section */}
+      {/* Card per kategori */}
       {kategoriList.map((kat) => (
         <div key={kat.nama} className="py-8 px-4">
           <div className="flex justify-between items-center mb-4">
             <h2 className={`text-xl font-bold ${kat.warna} text-white px-3 py-1 rounded`}>{kat.label}</h2>
-            {/* <Link
-              href="/kelompoklist"
-              className="text-sm text-blue-700 hover:underline"
-            >
-              Lihat Semua
-            </Link> */}
+            {/* <Link href="/kelompoklist" className="text-sm text-blue-700 hover:underline">Lihat Semua</Link> */}
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
             {(dataPerKategori[kat.nama] || []).map((item) => (
@@ -79,7 +82,6 @@ export default function Home() {
           </div>
         </div>
       ))}
-
     </div>
   );
 }
