@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from "react";
-import { db } from "../firebase";
+import { db } from "../../firebase";
 import { collection, getDocs, query, where } from "firebase/firestore";
-import CardKelompok from "../components/cards/CardKelompok";
-// import Link from "next/link";
+import CardKelompok from "../../components/cards/CardKelompok";
+import { Link } from "react-router-dom";
 
 const kategoriList = [
   { label: "Gapoktan", warna: "bg-lime-700", nama: "Gapoktan" },
@@ -73,7 +73,12 @@ export default function Home() {
         <div key={kat.nama} className="py-8 px-4">
           <div className="flex justify-between items-center mb-4">
             <h2 className={`text-xl font-bold ${kat.warna} text-white px-3 py-1 rounded`}>{kat.label}</h2>
-            {/* <Link href="/kelompoklist" className="text-sm text-blue-700 hover:underline">Lihat Semua</Link> */}
+            <Link
+              to={`/kelompoklist?kategori=${kat.nama}`}
+              className="text-sm text-blue-700 hover:underline"
+            >
+              Lihat Semua
+            </Link>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
             {(dataPerKategori[kat.nama] || []).map((item) => (

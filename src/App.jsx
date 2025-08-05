@@ -1,9 +1,9 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 
-import Home from './pages/Home';
+import Home from './pages/Public/Home';
+import KelompokList from './pages/Public/KelompokList';
 import Admin from './pages/Admin/Admin';
-import Tambah from './pages/Admin/Tambah';
 import Detail from "./pages/Admin/Detail";
 import Header from './components/layouts/Header';
 import Footer from './components/layouts/Footer';
@@ -20,10 +20,10 @@ function App() {
           <Routes>
             {/* Halaman publik */}
             <Route path="/" element={<Home />} />
+            <Route path="/kelompoklist" element={<KelompokList />} />
 
             {/* Halaman Admin */}
             <Route path="/admin" element={<Admin />} />
-            <Route path="/admin/tambah" element={<Tambah />} />
             <Route path="/admin/detail/:id" element={<Detail />} />
           </Routes>
         </main>
