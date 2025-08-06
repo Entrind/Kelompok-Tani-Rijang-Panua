@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 
 import Home from './pages/Public/Home';
 import KelompokList from './pages/Public/KelompokList';
+import DetailPublik from './pages/Public/Detail';
 import Admin from './pages/Admin/Admin';
 import Detail from "./pages/Admin/Detail";
 import Header from './components/layouts/Header';
@@ -21,6 +22,7 @@ function App() {
             {/* Halaman publik */}
             <Route path="/" element={<Home />} />
             <Route path="/kelompoklist" element={<KelompokList />} />
+            <Route path="/detail/:id" element={<DetailPublik />} />
 
             {/* Halaman Admin */}
             <Route path="/admin" element={<Admin />} />

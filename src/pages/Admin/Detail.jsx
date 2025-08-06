@@ -240,8 +240,7 @@ const Detail = () => {
 
   const columns = useMemo(
     () => [
-      {
-        accessorKey: "nama",header: "Nama" },
+      { accessorKey: "nama",header: "Nama" },
       { accessorKey: "nik", header: "NIK" },
       { accessorKey: "no_hp", header: "No HP" },      
       {

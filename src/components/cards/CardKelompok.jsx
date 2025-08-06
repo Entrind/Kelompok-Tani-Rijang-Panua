@@ -8,7 +8,7 @@ const CardKelompok = ({ kelompok }) => {
   return (
     <div
       className="bg-white shadow hover:shadow-md p-4 rounded-lg cursor-pointer transition"
-      onClick={() => navigate(`/kelompok/${kelompok.id}`)}
+      onClick={() => navigate(`/detail/${kelompok.id}`)}
     >
       <h2 className="text-lg font-bold mb-2">{kelompok.nama_kelompok}</h2>
 

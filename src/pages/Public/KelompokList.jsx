@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { db } from "../../firebase";
-import { collection, getDocs, query as firestoreQuery, orderBy, where } from "firebase/firestore";
+import { collection, getDocs, query as firestoreQuery, where } from "firebase/firestore";
 import CardKelompok from "../../components/cards/CardKelompok";
 import SearchBar from "../../components/forms/SearchBar"; 
 import { useSearchParams } from "react-router-dom";
@@ -75,7 +75,7 @@ export default function KelompokList() {
       <h1 className="text-3xl font-bold mb-4 text-center">Daftar Kelompok</h1>
 
       {/* Search Bar */}
-      <div className="mb-4 flex justify-center">
+      <div className="mb-4 px-1 flex justify-center">
         <SearchBar
           value={searchTerm}
           onChange={(e) => {
@@ -87,13 +87,13 @@ export default function KelompokList() {
       </div>
 
       {/* Filter */}
-      <div className="flex flex-wrap gap-2 justify-center mb-6">
+      <div className="flex flex-wrap gap-2 justify-center mb-5">
         {kategoriOptions.map((k) => (
           <button
             key={k}
             onClick={() => handleKategoriChange(k)}
-            className={`px-4 py-2 rounded-full border ${
-              kategori === k ? "bg-green-700 text-white" : "bg-white text-gray-700"
+            className={`px-4 py-2 font-semibold rounded-full border  ${
+              kategori === k ? "bg-green-700 text-white" : "bg-white text-gray-700 hover:border-green-700"
             }`}
           >
             {k}
