@@ -10,6 +10,7 @@ import { GroupAdd, Article, Edit, Delete } from "@mui/icons-material";
 import Swal from "sweetalert2";
 import { toast } from "react-toastify";
 import KelompokFormModal from "../../components/forms/KelompokFormModal";
+import { fetchStatistikKelompok } from "../../utils/statistik";
 
 import JSZip from "jszip";
 import { saveAs } from "file-saver";
@@ -62,26 +63,11 @@ const Admin = () => {
 
   const fetchStatistik = async () => {
     try {
-      const kelompokSnap = await getDocs(collection(db, "kelompok_tani"));
-      setJumlahKelompok(kelompokSnap.size);
-
-      let totalAnggotaCount = 0;
-      let totalLuas = 0;
-
-      for (const docKelompok of kelompokSnap.docs) {
-        const anggotaSnap = await getDocs(collection(docKelompok.ref, "anggota"));
-        totalAnggotaCount += anggotaSnap.size;
-
-        anggotaSnap.forEach((docAnggota) => {
-          const data = docAnggota.data();
-          const luas = parseFloat(data.luas || 0);
-          totalLuas += luas;
-        });
-      }
-
-      setTotalAnggota(totalAnggotaCount);
-      setTotalLahan(totalLuas);
-      setTotalLahanFormatted(totalLuas.toFixed(2) + " Ha");
+      const { jumlahKelompok, totalAnggota, totalLahan } = await fetchStatistikKelompok();
+      setJumlahKelompok(jumlahKelompok);
+      setTotalAnggota(totalAnggota);
+      setTotalLahan(totalLahan);
+      setTotalLahanFormatted(totalLahan.toFixed(2) + " Ha");
     } catch (err) {
       console.error("Gagal ambil statistik:", err);
     }
