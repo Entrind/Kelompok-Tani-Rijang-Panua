@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { db } from "../../firebase";
-import { collection, getDocs, query, where } from "firebase/firestore";
+import { collection, getDocs } from "firebase/firestore";
 import CardKelompok from "../../components/cards/CardKelompok";
 import { fetchStatistikKelompok } from "../../utils/statistik"; 
 import { Link } from "react-router-dom";
@@ -58,28 +58,34 @@ export default function Home() {
             "url('https://firebasestorage.googleapis.com/v0/b/kelompok-tani-rijang-panua.firebasestorage.app/o/homepage%2Fsawah.png?alt=media&token=604a6cf2-b4c8-4660-89e2-d977152e8cc8')",
         }}
       >
-        <div className="bg-black/50 p-6 rounded-xl">
-          <h1 className="text-3xl md:text-4xl font-bold text-white">Sistem Informasi Kelompok Tani</h1>
+        <div className="w-full px-4 sm:px-6 md:px-8"> 
+          <div className="bg-black/50 p-6 rounded-xl max-w-3xl mx-auto text-center">
+            <h1 className="text-3xl md:text-4xl font-bold text-white">Sistem Informasi Kelompok Tani</h1>
+          </div>
         </div>
       </div>
 
       {/* Statistik */}
-      <div className="bg-white py-8 px-4 grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
-        <div>
-          <p className="text-2xl font-bold text-green-700">{stats.kelompok}</p>
-          <p className="text-sm text-gray-600">Jumlah Kelompok</p>
-        </div>
-        <div>
-          <p className="text-2xl font-bold text-green-700">{stats.anggota}</p>
-          <p className="text-sm text-gray-600">Total Anggota</p>
-        </div>
-        <div>
-          <p className="text-2xl font-bold text-green-700">{stats.lahan.toFixed(2)}</p>
-          <p className="text-sm text-gray-600">Hektar Lahan</p>
-        </div>
-        <div>
-          <p className="text-2xl font-bold text-green-700">4</p>
-          <p className="text-sm text-gray-600">Kategori</p>
+      <div className="bg-gray-200 py-8">
+        <div className="px-4 sm:px-5 md:px-7">
+           <div className="max-w-7xl w-full bg-white mx-auto rounded-md py-8 px-4 grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
+            <div>
+              <p className="text-2xl font-bold text-green-700">{stats.kelompok}</p>
+              <p className="text-sm text-gray-600">Jumlah Kelompok</p>
+            </div>
+            <div>
+              <p className="text-2xl font-bold text-green-700">{stats.anggota}</p>
+              <p className="text-sm text-gray-600">Total Anggota</p>
+            </div>
+            <div>
+              <p className="text-2xl font-bold text-green-700">{stats.lahan.toFixed(2)}</p>
+              <p className="text-sm text-gray-600">Hektar Lahan</p>
+            </div>
+            <div>
+              <p className="text-2xl font-bold text-green-700">4</p>
+              <p className="text-sm text-gray-600">Kategori</p>
+            </div>
+          </div>
         </div>
       </div>
 
