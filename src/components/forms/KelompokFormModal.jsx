@@ -50,11 +50,23 @@ const KelompokFormModal = ({ visible, onClose, onSubmit, initialData, defaultReg
   };
 
   const titleCase = (text) => {
+    const keepUpper = ["KWT", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX", "X"];
+    
     return text
-      .toLowerCase()
-      .split(" ")
-      .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
-      .join(" ");
+    .split(" ")
+    .map((word) =>
+      word
+        .split("-")
+        .map((sub) => {
+          const upper = sub.toUpperCase();
+          if (keepUpper.includes(upper)) {
+            return upper;
+          }
+          return sub.charAt(0).toUpperCase() + sub.slice(1).toLowerCase();
+        })
+        .join("-")
+    )
+    .join(" ");
   };
 
   const handleSubmit = async () => {
