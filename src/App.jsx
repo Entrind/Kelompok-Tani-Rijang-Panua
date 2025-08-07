@@ -6,6 +6,7 @@ import KelompokList from './pages/Public/KelompokList';
 import DetailPublik from './pages/Public/Detail';
 import Admin from './pages/Admin/Admin';
 import Detail from "./pages/Admin/Detail";
+import AdminLogin from './pages/Auth/Login';
 import Header from './components/layouts/Header';
 import Footer from './components/layouts/Footer';
 
@@ -27,6 +28,7 @@ function App() {
             {/* Halaman Admin */}
             <Route path="/admin" element={<Admin />} />
             <Route path="/admin/detail/:id" element={<Detail />} />
+            <Route path="/admin/login" element={<AdminLogin />} />
           </Routes>
         </main>
         <Footer />
