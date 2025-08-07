@@ -83,15 +83,15 @@ const Detail = () => {
             Anggota: "bg-gray-400 text-white",
           };
           return (
-            <div className="flex justify-center">
-              <span
-                className={`px-2 py-1 rounded-md text-xs font-semibold ${
-                  colors[value] || "bg-gray-300 text-gray-800"
-                }`}
-              >
-                {value}
-              </span>
-            </div>
+
+            <span
+              className={`px-2 py-1 rounded-md text-xs font-semibold ${
+                colors[value] || "bg-gray-300 text-gray-800"
+              }`}
+            >
+              {value}
+            </span>
+ 
           );
         },
       },
@@ -112,7 +112,7 @@ const Detail = () => {
   if (loading) return <div className="text-center py-10">Loading...</div>;
 
   return (
-    <div className="max-w-full mx-auto p-6">
+    <div className="max-w-full mx-auto p-4 sm:p-6">
       {/* Tombol kembali */}
       <div className="mb-4">
         <button
@@ -179,16 +179,25 @@ const Detail = () => {
             },
           }}
           muiTableHeadCellProps={{
-            align: "center",
+            // align: "center",
             sx: {
               fontWeight: "bold",
               backgroundColor: "#f3f4f6", 
-              color: "#374151",           
+              color: "#374151",
+              '& .Mui-TableHeadCell-Content': {
+                justifyContent: {
+                  xs: 'flex-start',
+                  md: 'center',
+                  lg: 'center',
+                }
+              }          
             },
           }}
           muiTableBodyCellProps={{
             align: "center",
-            sx: { whiteSpace: "nowrap" },
+            sx: { 
+              whiteSpace: "nowrap", 
+              textAlign: { lg: "center", md:"center" , xs: "left" },},
           }}
           muiTableBodyRowProps={{
             sx: {
