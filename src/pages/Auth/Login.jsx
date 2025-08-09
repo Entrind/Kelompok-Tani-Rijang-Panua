@@ -83,7 +83,7 @@ export default function AdminLogin() {
             <label className="flex items-center text-sm text-gray-700">
               <input
                 type="checkbox"
-                className="mr-2 bg-white border-gray-300 rounded focus:ring-green-500"
+                className="h-4 w-4 ml-1 mr-2 rounded-sm border border-gray-400 bg-white checked:bg-blue-600 checked:border-blue-600 checked:appearance-auto appearance-none"
                 checked={rememberMe}
                 onChange={() => setRememberMe(!rememberMe)}
               />

@@ -1,20 +1,29 @@
-import { useEffect, useState } from "react";
+// components/auth/RequireAuth.jsx
+import React, { useEffect, useState } from "react";
 import { onAuthStateChanged } from "firebase/auth";
 import { auth } from "../../firebase";
-import { Navigate } from "react-router-dom";
+import { Navigate, useLocation } from "react-router-dom";
 
 export default function RequireAuth({ children }) {
-  const [user, setUser] = useState(undefined); 
+  const [checking, setChecking] = useState(true);
+  const [loggedIn, setLoggedIn] = useState(false);
+  const location = useLocation();
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
-      setUser(currentUser || null);
+    const unsub = onAuthStateChanged(auth, (user) => {
+      setLoggedIn(!!user);
+      setChecking(false);
     });
-    return () => unsubscribe();
+    return () => unsub();
   }, []);
 
-  if (user === undefined) return null;
-  if (user === null) return <Navigate to="/admin/login" replace />;
+  if (checking) {
+    return <div className="p-6 text-center">Memeriksa sesi...</div>;
+  }
+
+  if (!loggedIn) {
+    return <Navigate to="/admin/login" state={{ from: location }} replace />;
+  }
 
   return children;
 }
