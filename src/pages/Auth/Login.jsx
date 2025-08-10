@@ -91,8 +91,8 @@ export default function AdminLogin() {
             </label>
             <button
               type="button"
+              onClick={() => navigate('/admin/forgot-password')}
               className="text-sm text-blue-600 hover:underline"
-              onClick={() => toast.info("Hubungi admin untuk reset password.")}
             >
               Lupa password?
             </button>

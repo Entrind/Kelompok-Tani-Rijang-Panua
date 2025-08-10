@@ -8,6 +8,8 @@ import DetailPublik from './pages/Public/Detail';
 import Admin from './pages/Admin/Admin';
 import Detail from './pages/Admin/Detail';
 import AdminLogin from './pages/Auth/Login';
+import ForgotPassword from './pages/Auth/ForgotPassword';
+import ManageAdmins from './pages/Admin/ManageAdmins';
 import Header from './components/layouts/Header';
 import Footer from './components/layouts/Footer';
 import RequireAuth from './components/auth/RequireAuth';
@@ -25,15 +27,16 @@ function AppLayout() {
       {!isLoginPage && <Header />}
       <main className="flex-1">
         <Routes>
-          {/* Halaman publik */}
+          {/* Publik */}
           <Route path="/" element={<Home />} />
           <Route path="/kelompoklist" element={<KelompokList />} />
           <Route path="/detail/:id" element={<DetailPublik />} />
 
-          {/* Halaman admin login */}
+          {/* Auth */}
           <Route path="/admin/login" element={<AdminLogin />} />
+          <Route path="/admin/forgot-password" element={<ForgotPassword />} />
 
-          {/* Halaman admin, dilindungi oleh RequireAuth */}
+          {/* Admin Protected */}
           <Route
             path="/admin"
             element={
@@ -47,6 +50,14 @@ function AppLayout() {
             element={
               <RequireAuth>
                 <Detail />
+              </RequireAuth>
+            }
+          />
+          <Route
+            path="/admin/manage-admins"
+            element={
+              <RequireAuth roles={['superadmin']}>
+                <ManageAdmins />
               </RequireAuth>
             }
           />
