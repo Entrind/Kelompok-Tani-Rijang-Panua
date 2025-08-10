@@ -5,11 +5,15 @@ import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-route
 import Home from './pages/Public/Home';
 import KelompokList from './pages/Public/KelompokList';
 import DetailPublik from './pages/Public/Detail';
+
 import Admin from './pages/Admin/Admin';
 import Detail from './pages/Admin/Detail';
+import Profile from './pages/Admin/Profile';
+import ManageAdmins from './pages/Admin/ManageAdmins';
+
 import AdminLogin from './pages/Auth/Login';
 import ForgotPassword from './pages/Auth/ForgotPassword';
-import ManageAdmins from './pages/Admin/ManageAdmins';
+
 import Header from './components/layouts/Header';
 import Footer from './components/layouts/Footer';
 import RequireAuth from './components/auth/RequireAuth';
@@ -50,6 +54,14 @@ function AppLayout() {
             element={
               <RequireAuth>
                 <Detail />
+              </RequireAuth>
+            }
+          />
+          <Route
+            path="/admin/profile"
+            element={
+              <RequireAuth>
+                <Profile />
               </RequireAuth>
             }
           />
