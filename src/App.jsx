@@ -15,27 +15,40 @@ import AdminLogin from './pages/Auth/Login';
 import ForgotPassword from './pages/Auth/ForgotPassword';
 
 import Header from './components/layouts/Header';
+import AdminHeader from './components/layouts/AdminHeader';
 import Footer from './components/layouts/Footer';
+
 import RequireAuth from './components/auth/RequireAuth';
 
 import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
 // Komponen pembungkus agar bisa pakai useLocation
-function AppLayout() {
+function AppLayout({ children }) {
   const location = useLocation();
-  const isLoginPage = location.pathname === "/admin/login";
+  const isAdminRoute = location.pathname.startsWith('/admin');
 
   return (
     <div className="min-h-screen flex flex-col bg-gray-50 text-gray-900">
-      {!isLoginPage && <Header />}
-      <main className="flex-1">
+      {/* Header dinamis */}
+      {isAdminRoute ? <AdminHeader /> : <Header />}
+      <main className="flex-1">{children}</main>
+      {!isAdminRoute && <Footer />}
+      <ToastContainer position="top-right" />
+    </div>
+  );
+}
+
+export default function App() {
+  return (
+    <Router>
+      <AppLayout>
         <Routes>
           {/* Publik */}
           <Route path="/" element={<Home />} />
           <Route path="/kelompoklist" element={<KelompokList />} />
           <Route path="/detail/:id" element={<DetailPublik />} />
-
+          
           {/* Auth */}
           <Route path="/admin/login" element={<AdminLogin />} />
           <Route path="/admin/forgot-password" element={<ForgotPassword />} />
@@ -74,17 +87,7 @@ function AppLayout() {
             }
           />
         </Routes>
-      </main>
-      {!isLoginPage && <Footer />}
-      <ToastContainer />
-    </div>
-  );
-}
-
-export default function App() {
-  return (
-    <Router>
-      <AppLayout />
+      </AppLayout>
     </Router>
   );
 }

@@ -24,6 +24,14 @@ export default function AdminLogin() {
       const adminRef = doc(db, "admins", uid);
       const adminSnap = await getDoc(adminRef);
 
+      const data = adminSnap.data() || {};
+      localStorage.setItem("admin", JSON.stringify({
+        uid,
+        email,
+        nama: data.nama || userCredential.user.displayName || "", // ✅ fallback
+        role: data.role || "admin",
+      }));
+
       if (!adminSnap.exists()) {
         toast.error("Akun ini bukan admin!");
         return;
@@ -89,13 +97,11 @@ export default function AdminLogin() {
               />
               Ingat saya
             </label>
-            <button
-              type="button"
-              onClick={() => navigate('/admin/forgot-password')}
-              className="text-sm text-blue-600 hover:underline"
-            >
+            <label className="flex items-center gap-2 text-sm">
+            </label>
+            <a href="/admin/forgot-password" className="text-sm text-blue-700 hover:underline">
               Lupa password?
-            </button>
+            </a>
           </div>
 
           <button
