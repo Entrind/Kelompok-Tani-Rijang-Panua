@@ -60,7 +60,7 @@ export default function Home() {
       >
         <div className="w-full px-4 sm:px-6 md:px-8"> 
           <div className="bg-black/50 p-6 rounded-xl max-w-3xl mx-auto text-center">
-            <h1 className="text-3xl md:text-4xl font-bold text-white">Sistem Informasi Kelompok Tani</h1>
+            <h1 className="text-3xl md:text-4xl font-bold text-white">Sistem Informasi Kelompok Tani Desa Rijang Panua</h1>
           </div>
         </div>
       </div>

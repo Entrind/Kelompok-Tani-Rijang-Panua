@@ -37,24 +37,34 @@ const Admin = () => {
 
       const data = await Promise.all(
         snapshot.docs.map(async (docSnap) => {
-          const dataKelompok = { id: docSnap.id, ...docSnap.data() };
+          const k = { id: docSnap.id, ...docSnap.data() };
 
-          // Ambil sub-koleksi anggota
-          const anggotaRef = collection(docSnap.ref, "anggota");
-          const anggotaSnap = await getDocs(anggotaRef);
-          const anggota = anggotaSnap.docs.map((a) => a.data());
+          let ketua = "-", sekretaris = "-", bendahara = "-";
 
-          // Cari ketua, sekretaris, bendahara
-          const ketua = anggota.find((a) => a.jabatan === "Ketua")?.nama || "-";
-          const sekretaris = anggota.find((a) => a.jabatan === "Sekretaris")?.nama || "-";
-          const bendahara = anggota.find((a) => a.jabatan === "Bendahara")?.nama || "-";
+          if (k.kategori === "Gapoktan") {
+            // 🔹 Ambil pengurus (3 jabatan)
+            const pengSnap = await getDocs(collection(docSnap.ref, "pengurus"));
+            const pengurus = pengSnap.docs.map((d) => d.data());
+            ketua = pengurus.find((p) => p.jabatan === "Ketua")?.nama || "-";
+            sekretaris = pengurus.find((p) => p.jabatan === "Sekretaris")?.nama || "-";
+            bendahara = pengurus.find((p) => p.jabatan === "Bendahara")?.nama || "-";
+          } else {
+            // 🔹 Ambil anggota individu untuk non-Gapoktan
+            const anggotaRef = collection(docSnap.ref, "anggota");
+            const anggotaSnap = await getDocs(anggotaRef);
+            const anggota = anggotaSnap.docs.map((a) => a.data());
+            ketua = anggota.find((a) => a.jabatan === "Ketua")?.nama || "-";
+            sekretaris = anggota.find((a) => a.jabatan === "Sekretaris")?.nama || "-";
+            bendahara = anggota.find((a) => a.jabatan === "Bendahara")?.nama || "-";
+          }
 
-          return { ...dataKelompok, ketua, sekretaris, bendahara };
+          return { ...k, ketua, sekretaris, bendahara };
         })
       );
 
       setKelompok(data);
-    } catch {
+    } catch (err) {
+      console.error(err);
       toast.error("Gagal memuat data kelompok");
     } finally {
       setLoading(false);
