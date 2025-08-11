@@ -96,7 +96,7 @@ export default function TambahKelompokGapoktanModal({
         <h3 className="text-lg font-semibold mb-3">Pilih Kelompok Tani</h3>
 
         <input
-          className="w-full border rounded px-3 py-2 mb-3"
+          className="w-full bg-white border rounded px-3 py-2 mb-3"
           placeholder="Cari kelompok..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
@@ -113,6 +113,7 @@ export default function TambahKelompokGapoktanModal({
               >
                 <input
                   type="checkbox"
+                  className="h-4 w-4 ml-1 mr-2 rounded-sm border border-gray-400 bg-white checked:bg-blue-600 checked:border-blue-600 checked:appearance-auto appearance-none"
                   checked={selected.has(item.id)}
                   onChange={() => toggleSelect(item.id)}
                 />

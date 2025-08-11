@@ -2,12 +2,13 @@
 import React, { useEffect, useState, useMemo, useCallback } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { db } from "../../firebase";
-import { doc, getDoc, collection, getDocs, updateDoc, deleteDoc, addDoc, setDoc, } from "firebase/firestore";
+import { doc, getDoc, collection, getDocs, updateDoc, deleteDoc, addDoc, setDoc } from "firebase/firestore";
 
 import { MaterialReactTable } from "material-react-table";
 import { Box, IconButton } from "@mui/material";
-import { Edit, Delete, ArrowBack, GroupAdd, Visibility } from "@mui/icons-material";
+import { Edit, Delete, GroupAdd, Article } from "@mui/icons-material";
 import PersonAddAlt1Icon from "@mui/icons-material/PersonAddAlt1";
+import { ArrowLeft } from 'lucide-react';
 
 import Swal from "sweetalert2";
 import { toast } from "react-toastify";
@@ -35,23 +36,127 @@ const Detail = () => {
   // Gapoktan mode
   const [isGapoktan, setIsGapoktan] = useState(false);
   const [pengurus, setPengurus] = useState([]); // subkoleksi 'pengurus'
-  const [kelompokAnggota, setKelompokAnggota] = useState([]); // subkoleksi 'kelompok_anggota'
+  const [kelompokAnggota, setKelompokAnggota] = useState([]); // subkoleksi 'kelompok_anggota' (diperkaya)
 
   // modal states (gapoktan)
   const [showTambahKelompok, setShowTambahKelompok] = useState(false);
   const [showPengurusModal, setShowPengurusModal] = useState(false);
   const [editPengurus, setEditPengurus] = useState(null);
 
-  const fetchGapoktanData = useCallback(async () => {
-    // ambil pengurus
-    const pengRef = collection(db, "kelompok_tani", id, "pengurus");
-    const pengSnap = await getDocs(pengRef);
-    setPengurus(pengSnap.docs.map((d) => ({ id: d.id, ...d.data() })));
+  /** Helper Badge Jabatan (Ketua/Sekretaris/Bendahara/Anggota) */
+  const jabatanOrder = {
+    Ketua: 1,
+    Sekretaris: 2,
+    Bendahara: 3,
+    Anggota: 4,
+  };
+  const badgeJabatanColors = {
+    Ketua: "bg-green-600 text-white",
+    Sekretaris: "bg-blue-600 text-white",
+    Bendahara: "bg-yellow-600 text-white",
+    Anggota: "bg-gray-400 text-white",
+  };
 
-    // ambil kelompok anggota
-    const kaRef = collection(db, "kelompok_tani", id, "kelompok_anggota");
-    const kaSnap = await getDocs(kaRef);
-    setKelompokAnggota(kaSnap.docs.map((d) => ({ id: d.id, ...d.data() })));
+  const renderJabatanChip = (value) => {
+    const v = value || "Anggota";
+    const color = badgeJabatanColors[v] || "bg-gray-300 text-gray-800";
+    return (
+      <div className="flex justify-center">
+        <span className={`px-2 py-1 rounded-md text-xs font-semibold ${color}`}>
+          {v}
+        </span>
+      </div>
+    );
+  };
+
+  /** Badge Kategori seperti di Admin.jsx */
+  const kategoriColorMap = {
+    Gapoktan: "bg-lime-900 text-lime-100",
+    "Kelompok Tani": "bg-green-800 text-green-100",
+    "Kelompok Kebun": "bg-amber-800 text-amber-100",
+    KWT: "bg-pink-800 text-pink-100",
+  };
+
+  const renderBadgeKategori = (value) => {
+    const label = value || "Kelompok Tani";
+    const color = kategoriColorMap[label] || "bg-gray-300 text-gray-800";
+    return (
+      <div className="flex justify-center">
+        <span className={`px-2 py-1 text-sm font-medium rounded-md ${color}`}>
+          {label}
+        </span>
+      </div>
+    );
+  };
+
+  /** Badge Nama Pengurus (Ketua/Sekretaris/Bendahara) ala Admin.jsx */
+  const renderBadgeNamaRole = (label, type) => {
+    const baseMap = {
+      Ketua: "bg-green-100 text-green-800",
+      Sekretaris: "bg-blue-100 text-blue-800",
+      Bendahara: "bg-yellow-100 text-yellow-800",
+    };
+    const colorClass = baseMap[type] || "bg-gray-300 text-gray-800";
+    return (
+      <span className={`px-2 py-1 text-sm font-medium rounded-md ${colorClass}`}>
+        {label || "-"}
+      </span>
+    );
+  };
+
+  const columnOrderFixed = [
+    'nama', 'nik', 'no_hp', 'jabatan', 'luas', 'ket', 'aksi'
+  ];
+
+ 
+  const fetchGapoktanData = useCallback(async () => {
+    try {
+      // Pengurus
+      const pengRef = collection(db, "kelompok_tani", id, "pengurus");
+      const pengSnap = await getDocs(pengRef);
+      const pengData = pengSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
+      setPengurus(pengData);
+
+      // Kelompok Anggota
+      const kaRef = collection(db, "kelompok_tani", id, "kelompok_anggota");
+      const kaSnap = await getDocs(kaRef);
+
+      const enriched = await Promise.all(
+        kaSnap.docs.map(async (d) => {
+          const { kelompokId, nama_kelompok } = d.data();
+          let detail = {};
+          if (kelompokId) {
+            const kDoc = await getDoc(doc(db, "kelompok_tani", kelompokId));
+            if (kDoc.exists()) {
+              const kData = kDoc.data();
+              detail = {
+                kategori: kData.kategori || "Kelompok Tani",
+                ketua: kData.ketua || "-",
+                sekretaris: kData.sekretaris || "-",
+                bendahara: kData.bendahara || "-",
+                jumlah_anggota: kData.jumlah_anggota || 0,
+                total_lahan: kData.total_lahan || 0,
+              };
+            }
+          }
+          return {
+            id: d.id,
+            kelompokId: kelompokId || null,
+            nama_kelompok: nama_kelompok || "(Tanpa Nama)",
+            ...detail,
+          };
+        })
+      );
+
+      // Urutkan berdasarkan nama_kelompok A→Z
+      enriched.sort((a, b) =>
+        (a.nama_kelompok || "").localeCompare(b.nama_kelompok || "")
+      );
+      setKelompokAnggota(enriched);
+    } catch (e) {
+      console.error(e);
+      toast.error("Gagal memuat data gapoktan");
+    }
   }, [id]);
 
   /** === Fetch data detail & anggota === */
@@ -70,7 +175,6 @@ const Detail = () => {
           if (isGap) {
             await fetchGapoktanData();
           } else {
-            // mode non-gapoktan → ambil anggota perorangan
             const anggotaRef = collection(docRef, "anggota");
             const anggotaSnap = await getDocs(anggotaRef);
             setAnggota(anggotaSnap.docs.map((d) => ({ id: d.id, ...d.data() })));
@@ -90,7 +194,6 @@ const Detail = () => {
   /** === ACTION NON-GAPOKTAN === */
   const updateSummary = useCallback(
     async (data) => {
-      // hitung rekap dari data anggota
       const jumlah = data.length;
       const totalLahan = data.reduce(
         (sum, a) => sum + (a.luas ? Number(a.luas) : 0),
@@ -171,7 +274,6 @@ const Detail = () => {
     try {
       setLoadingAction(true);
       if (editData) {
-        // update anggota
         const anggotaRef = doc(db, "kelompok_tani", id, "anggota", editData.id);
         await updateDoc(anggotaRef, data);
 
@@ -183,7 +285,6 @@ const Detail = () => {
 
         toast.success("Data anggota berhasil diperbarui");
       } else {
-        // tambah anggota
         const anggotaRef = collection(db, "kelompok_tani", id, "anggota");
         const newDoc = await addDoc(anggotaRef, {
           jabatan: data.jabatan || "Anggota",
@@ -209,8 +310,6 @@ const Detail = () => {
   const handleExportExcel = () => {
     if (!kelompok) return toast.warn("Data kelompok belum siap");
     if (!anggota.length) return toast.warn("Tidak ada data anggota untuk diexport");
-
-    const jabatanOrder = { Ketua: 1, Sekretaris: 2, Bendahara: 3, Anggota: 4 };
 
     const anggotaSorted = [...anggota].sort((a, b) => {
       const rankA = jabatanOrder[a.jabatan || "Anggota"];
@@ -246,7 +345,6 @@ const Detail = () => {
     });
 
     const ws = XLSX.utils.aoa_to_sheet(rows);
-
     ws["!cols"] = [
       { wch: 5 },
       { wch: 25 },
@@ -262,14 +360,7 @@ const Detail = () => {
     XLSX.writeFile(wb, `Kelompok_${kelompok.nama_kelompok}.xlsx`);
   };
 
-  /** === COLUMNS MRT (Non-Gapoktan, urut jabatan dulu) === */
-  const jabatanOrder = {
-    Ketua: 1,
-    Sekretaris: 2,
-    Bendahara: 3,
-    Anggota: 4,
-  };
-
+  /** === COLUMNS MRT: Anggota (Non-Gapoktan) === */
   const columns = useMemo(
     () => [
       { accessorKey: "nama", header: "Nama" },
@@ -288,26 +379,7 @@ const Detail = () => {
           const namaB = rowB.getValue("nama")?.toLowerCase() || "";
           return namaA.localeCompare(namaB);
         },
-        Cell: ({ cell }) => {
-          const value = cell.getValue() || "Anggota";
-          const colors = {
-            Ketua: "bg-green-600 text-white",
-            Sekretaris: "bg-blue-600 text-white",
-            Bendahara: "bg-yellow-600 text-white",
-            Anggota: "bg-gray-400 text-white",
-          };
-          return (
-            <div className="flex justify-center">
-              <span
-                className={`px-2 py-1 rounded-md text-xs font-semibold ${
-                  colors[value] || "bg-gray-300 text-gray-800"
-                }`}
-              >
-                {value}
-              </span>
-            </div>
-          );
-        },
+        Cell: ({ cell }) => renderJabatanChip(cell.getValue()),
       },
       {
         accessorKey: "luas",
@@ -342,61 +414,41 @@ const Detail = () => {
     [loadingAction, handleEdit, handleDelete]
   );
 
-  /** === COLUMNS MRT: Kelompok Anggota (Gapoktan) === */
-  const columnsKelompokAnggota = useMemo(
-    () => [
-      { accessorKey: "nama_kelompok", header: "Nama Kelompok" },
-      {
-        header: "Aksi",
-        enableSorting: false,
-        Cell: ({ row }) => (
-          <Box display="flex" gap={1} justifyContent="center">
-            <IconButton
-              color="primary"
-              onClick={() => navigate(`/admin/detail/${row.original.kelompokId}`)}
-              title="Lihat Detail Kelompok"
-            >
-              <Visibility />
-            </IconButton>
-            <IconButton
-              color="error"
-              onClick={async () => {
-                try {
-                  await deleteDoc(
-                    doc(db, "kelompok_tani", id, "kelompok_anggota", row.original.id)
-                  );
-                  setKelompokAnggota((prev) =>
-                    prev.filter((k) => k.id !== row.original.id)
-                  );
-                  toast.success("Kelompok anggota dibuang dari gapoktan");
-                } catch (e) {
-                  console.error(e);
-                  toast.error("Gagal menghapus");
-                }
-              }}
-            >
-              <Delete />
-            </IconButton>
-          </Box>
-        ),
-      },
-    ],
-    [id, navigate]
-  );
-
-  /** === COLUMNS MRT: Pengurus (Gapoktan) === */
+  /** === COLUMNS MRT: Pengurus (Gapoktan) — disamakan dengan Anggota === */
   const columnsPengurus = useMemo(
     () => [
       { accessorKey: "nama", header: "Nama" },
-      { accessorKey: "jabatan", header: "Jabatan" },
+      { accessorKey: "nik", header: "NIK" },
+      { accessorKey: "no_hp", header: "No HP" },
       {
-        accessorKey: "no_hp",
-        header: "No HP",
+        accessorKey: "jabatan",
+        header: "Jabatan",
+        sortingFn: (rowA, rowB) => {
+          const jabA = rowA.getValue("jabatan") || "Anggota";
+          const jabB = rowB.getValue("jabatan") || "Anggota";
+          if (jabatanOrder[jabA] !== jabatanOrder[jabB]) {
+            return jabatanOrder[jabA] - jabatanOrder[jabB];
+          }
+          const namaA = rowA.getValue("nama")?.toLowerCase() || "";
+          const namaB = rowB.getValue("nama")?.toLowerCase() || "";
+          return namaA.localeCompare(namaB);
+        },
+        Cell: ({ cell }) => renderJabatanChip(cell.getValue()),
+      },
+      {
+        accessorKey: "luas",
+        header: "Luas (Ha)",
+        Cell: ({ cell }) => cell.getValue() || 0,
+      },
+      {
+        accessorKey: "ket",
+        header: "Keterangan",
         Cell: ({ cell }) => cell.getValue() || "-",
       },
       {
         header: "Aksi",
         enableSorting: false,
+        enableColumnFilter: false,
         Cell: ({ row }) => (
           <Box display="flex" gap={1} justifyContent="center">
             <IconButton
@@ -410,16 +462,8 @@ const Detail = () => {
             </IconButton>
             <IconButton
               color="error"
-              onClick={async () => {
-                try {
-                  await deleteDoc(doc(db, "kelompok_tani", id, "pengurus", row.original.id));
-                  setPengurus((prev) => prev.filter((p) => p.id !== row.original.id));
-                  toast.success("Pengurus dihapus");
-                } catch (e) {
-                  console.error(e);
-                  toast.error("Gagal menghapus pengurus");
-                }
-              }}
+              onClick={() => handleDeletePengurus(row.original.id)}
+              disabled={loadingAction}
             >
               <Delete />
             </IconButton>
@@ -430,7 +474,67 @@ const Detail = () => {
     [id]
   );
 
-  /** === Edit Data Kelompok (Nama/Kategori/Region) === */
+  /** === COLUMNS MRT: Kelompok Anggota (Gapoktan) — disamakan dengan Admin.jsx === */
+  const columnsKelompokAnggota = useMemo(
+    () => [
+      { accessorKey: "nama_kelompok", header: "Nama Kelompok" },
+      {
+        accessorKey: "kategori",
+        header: "Kategori",
+        Cell: ({ cell }) => renderBadgeKategori(cell.getValue()),
+      },
+      {
+        accessorKey: "ketua",
+        header: "Ketua",
+        Cell: ({ cell }) => renderBadgeNamaRole(cell.getValue(), "Ketua"),
+      },
+      {
+        accessorKey: "sekretaris",
+        header: "Sekretaris",
+        Cell: ({ cell }) => renderBadgeNamaRole(cell.getValue(), "Sekretaris"),
+      },
+      {
+        accessorKey: "bendahara",
+        header: "Bendahara",
+        Cell: ({ cell }) => renderBadgeNamaRole(cell.getValue(), "Bendahara"),
+      },
+      {
+        accessorKey: "jumlah_anggota",
+        header: "Jumlah Anggota",
+        Cell: ({ cell }) => cell.getValue() || 0,
+      },
+      {
+        accessorKey: "total_lahan",
+        header: "Total Lahan (Ha)",
+        Cell: ({ cell }) => `${Number(cell.getValue() || 0).toFixed(2)} Ha`,
+      },
+      {
+        header: "Aksi",
+        enableSorting: false,
+        Cell: ({ row }) => (
+          <Box display="flex" gap={1} justifyContent="center">
+            <IconButton
+              color="primary"
+              onClick={() => navigate(`/admin/detail/${row.original.kelompokId}`)}
+              title="Lihat Detail Kelompok"
+            >
+              <Article />
+            </IconButton>
+            <IconButton
+              color="error"
+              onClick={() => handleDeleteKelompokAnggota(row.original.id)}
+              disabled={loadingAction}
+            >
+              <Delete />
+            </IconButton>
+          </Box>
+        ),
+      },
+    ],
+    [id, navigate]
+  );
+
+  /** === Edit Data Kelompok (common) === */
   const handleEditKelompok = async (formData) => {
     try {
       const docRef = doc(db, "kelompok_tani", kelompok.id);
@@ -485,19 +589,81 @@ const Detail = () => {
     }
   };
 
+  // === DELETE: Pengurus Gapoktan ===
+  const handleDeletePengurus = useCallback(
+    async (pengurusId) => {
+      const result = await Swal.fire({
+        title: "Hapus Pengurus?",
+        text: "Data pengurus ini akan dihapus permanen.",
+        icon: "warning",
+        showCancelButton: true,
+        confirmButtonColor: "#d33",
+        cancelButtonColor: "#3085d6",
+        confirmButtonText: "Ya, hapus!",
+        cancelButtonText: "Batal",
+      });
+      if (!result.isConfirmed) return;
+
+      try {
+        setLoadingAction(true);
+        await deleteDoc(doc(db, "kelompok_tani", id, "pengurus", pengurusId));
+        setPengurus((prev) => prev.filter((p) => p.id !== pengurusId));
+        toast.success("Pengurus berhasil dihapus");
+      } catch (error) {
+        console.error(error);
+        toast.error("Gagal menghapus pengurus");
+      } finally {
+        setLoadingAction(false);
+      }
+    },
+    [id]
+  );
+
+  // === DELETE: Kelompok Anggota (Gapoktan) ===
+  const handleDeleteKelompokAnggota = useCallback(
+    async (kaId) => {
+      const result = await Swal.fire({
+        title: "Buang Kelompok dari Gapoktan?",
+        text: "Kelompok ini akan dihapus dari daftar anggota gapoktan.",
+        icon: "warning",
+        showCancelButton: true,
+        confirmButtonColor: "#d33",
+        cancelButtonColor: "#3085d6",
+        confirmButtonText: "Ya, hapus!",
+        cancelButtonText: "Batal",
+      });
+      if (!result.isConfirmed) return;
+
+      try {
+        setLoadingAction(true);
+        await deleteDoc(doc(db, "kelompok_tani", id, "kelompok_anggota", kaId));
+        setKelompokAnggota((prev) => prev.filter((k) => k.id !== kaId));
+        toast.success("Kelompok anggota dibuang dari gapoktan");
+      } catch (error) {
+        console.error(error);
+        toast.error("Gagal menghapus");
+      } finally {
+        setLoadingAction(false);
+      }
+    },
+    [id]
+  );
+
+
   if (loading) return <div className="text-center py-10">Loading...</div>;
 
   return (
     <div className="max-w-full mx-auto p-6">
       {/* Tombol kembali */}
       <div className="mb-4">
-        <Link
-          to="/admin"
-          className="inline-flex items-center gap-1 text-blue-600 hover:text-blue-800"
-        >
-          <ArrowBack fontSize="small" />
-          <span className="text-sm font-medium">Kembali</span>
-        </Link>
+        <button
+            type="button"
+            onClick={() => navigate(-1)}
+            className="mb-4 inline-flex items-center gap-1 text-blue-600 hover:text-blue-800"
+            >
+            <ArrowLeft size={16} />
+            <span className="text-sm font-medium">Kembali</span>
+        </button>
       </div>
 
       {/* Info kelompok */}
@@ -513,20 +679,36 @@ const Detail = () => {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-1 text-gray-700">
-          <p>
-            Kategori:{" "}
-            <strong>{kelompok?.kategori || "Kelompok Tani"}</strong>
+          <p className="col-start-1 row-start-1">
+            Kategori: <strong>{kelompok?.kategori || "Kelompok Tani"}</strong>
           </p>
-          <p>ID Kelompok: <strong>{kelompok?.id}</strong></p>
-          <p>Provinsi: <strong>{kelompok?.provinsi}</strong></p>
-          <p>Kabupaten: <strong>{kelompok?.kabupaten}</strong></p>
-          <p>Kecamatan: <strong>{kelompok?.kecamatan}</strong></p>
-          {!isGapoktan && (
+          <p className="col-start-1 row-start-2">
+            ID Kelompok: <strong>{kelompok.id}</strong>
+          </p>
+          <p className="col-start-1 row-start-3">
+            Provinsi: <strong>{kelompok.provinsi}</strong>
+          </p>
+          <p className="col-start-1 row-start-4">
+            Kabupaten: <strong>{kelompok.kabupaten}</strong>
+          </p>
+          <p>Kecamatan: <strong>{kelompok.kecamatan}</strong></p>
+
+          {isGapoktan ? (
             <>
-              <p>Jumlah Anggota: <strong>{kelompok?.jumlah_anggota || 0}</strong></p>
+              <p>
+                Jumlah Kelompok: <strong>{kelompokAnggota.length}</strong>
+              </p>
+            </>
+          ) : (
+            <>
+              <p>
+                Jumlah Anggota: <strong>{kelompok?.jumlah_anggota || 0}</strong>
+              </p>
               <p>
                 Total Lahan:{" "}
-                <strong>{Number(kelompok?.total_lahan || 0).toFixed(2)} Ha</strong>
+                <strong>
+                  {Number(kelompok?.total_lahan || 0).toFixed(2)} Ha
+                </strong>
               </p>
             </>
           )}
@@ -547,7 +729,8 @@ const Detail = () => {
                 }}
                 className="px-3 py-2 bg-lime-700 text-white rounded hover:bg-lime-800"
               >
-                + Tambah Pengurus
+                <PersonAddAlt1Icon fontSize="small" className="mb-1 mr-1.5" />
+                Tambah Pengurus
               </button>
             </div>
             <MaterialReactTable
@@ -556,13 +739,34 @@ const Detail = () => {
               getRowId={(row) => row.id}
               enableColumnActions={false}
               enableColumnFilters={false}
-              initialState={{ pagination: { pageIndex: 0, pageSize: 10 } }}
+              initialState={{
+                columnOrder: columnOrderFixed,
+                sorting: [{ id: "jabatan", desc: false }],
+                pagination: { pageIndex: 0, pageSize: 10 },
+              }}
               muiTablePaperProps={{
                 elevation: 2,
                 sx: {
                   borderRadius: "0.75rem",
                   overflow: "hidden",
                   border: "1px solid #e5e7eb",
+                },
+              }}
+              muiTableHeadCellProps={{
+                align: "center",
+                sx: {
+                  fontWeight: "bold",
+                  backgroundColor: "#f3f4f6",
+                  color: "#374151",
+                },
+              }}
+              muiTableBodyCellProps={{
+                align: "center",
+                sx: { whiteSpace: "nowrap" },
+              }}
+              muiTableBodyRowProps={{
+                sx: {
+                  "&:hover": { backgroundColor: "#f3f4f6" },
                 },
               }}
             />
@@ -593,6 +797,23 @@ const Detail = () => {
                   borderRadius: "0.75rem",
                   overflow: "hidden",
                   border: "1px solid #e5e7eb",
+                },
+              }}
+              muiTableHeadCellProps={{
+                align: "center",
+                sx: {
+                  fontWeight: "bold",
+                  backgroundColor: "#f3f4f6",
+                  color: "#374151",
+                },
+              }}
+              muiTableBodyCellProps={{
+                align: "center",
+                sx: { whiteSpace: "nowrap" },
+              }}
+              muiTableBodyRowProps={{
+                sx: {
+                  "&:hover": { backgroundColor: "#f3f4f6" },
                 },
               }}
             />
@@ -661,6 +882,7 @@ const Detail = () => {
               enableColumnActions={false}
               enableColumnFilters={false}
               initialState={{
+                columnOrder: columnOrderFixed,
                 sorting: [{ id: "jabatan", desc: false }],
                 pagination: {
                   pageIndex: 0,
@@ -676,11 +898,7 @@ const Detail = () => {
                   border: "1px solid #e5e7eb",
                 },
               }}
-              muiTableContainerProps={{
-                sx: {
-                  border: "none",
-                },
-              }}
+              muiTableContainerProps={{ sx: { border: "none" } }}
               muiTableHeadCellProps={{
                 align: "center",
                 sx: {
@@ -694,11 +912,7 @@ const Detail = () => {
                 sx: { whiteSpace: "nowrap" },
               }}
               muiTableBodyRowProps={{
-                sx: {
-                  "&:hover": {
-                    backgroundColor: "#f3f4f6",
-                  },
-                },
+                sx: { "&:hover": { backgroundColor: "#f3f4f6" } },
               }}
             />
           )}
@@ -709,6 +923,7 @@ const Detail = () => {
             onClose={() => setShowModal(false)}
             onSubmit={handleSubmitModal}
             initialData={editData}
+            existingJabatan={anggota.map((a) => a.jabatan)}
           />
         </>
       )}

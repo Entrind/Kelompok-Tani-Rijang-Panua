@@ -10,7 +10,7 @@ export default function PublicHeader() {
 
   return (
     <header className="bg-lime-800 text-white py-3 px-6 shadow">
-      <div className="max-w-7xl mx-auto flex justify-between items-center">
+      <div className="max-w-full h-10 mx-auto flex justify-between items-center">
         <div className="font-bold">
           Kelompok Tani Rijang Panua
         </div>
