@@ -17,6 +17,8 @@ import KelompokFormModal from "../../components/forms/KelompokFormModal";
 import TambahKelompokGapoktanModal from "../../components/forms/TambahKelompokGapoktanModal";
 import PengurusGapoktanFormModal from "../../components/forms/PengurusGapoktanFormModal";
 
+import { renameKelompokDoc } from "../../utils/firestoreRename";
+
 import * as XLSX from "xlsx";
 
 const Detail = () => {
@@ -537,32 +539,69 @@ const Detail = () => {
   /** === Edit Data Kelompok (common) === */
   const handleEditKelompok = async (formData) => {
     try {
-      const docRef = doc(db, "kelompok_tani", kelompok.id);
-      await setDoc(
-        docRef,
-        {
-          nama_kelompok: formData.nama_kelompok,
-          kategori: formData.kategori,
-          provinsi: formData.provinsi,
-          kabupaten: formData.kabupaten,
-          kecamatan: formData.kecamatan,
-        },
-        { merge: true }
-      );
+      const oldId = kelompok.id;
+      const newId = (formData.id_kelompok || "").trim() || oldId;
 
-      await Swal.fire("Sukses", "Data kelompok berhasil diperbarui", "success");
-      setKelompok((prev) => ({
-        ...prev,
+      const dataToSave = {
         nama_kelompok: formData.nama_kelompok,
         kategori: formData.kategori,
         provinsi: formData.provinsi,
         kabupaten: formData.kabupaten,
         kecamatan: formData.kecamatan,
-      }));
+        ...(formData.ketua ? { ketua: formData.ketua } : {}),
+        ...(formData.sekretaris ? { sekretaris: formData.sekretaris } : {}),
+        ...(formData.bendahara ? { bendahara: formData.bendahara } : {}),
+      };
+
+      // ID tidak berubah → update biasa
+      if (newId === oldId) {
+        await setDoc(doc(db, "kelompok_tani", oldId), dataToSave, { merge: true });
+        await Swal.fire("Sukses", "Data kelompok berhasil diperbarui", "success");
+
+        setKelompok((prev) => ({ ...prev, ...dataToSave }));
+        setShowKelompokModal(false);
+        return;
+      }
+
+      // Konfirmasi rename ID
+      const konf = await Swal.fire({
+        title: "Ubah ID Kelompok?",
+        html: `
+          ID lama: <b>${oldId}</b><br/>
+          ID baru: <b>${newId}</b><br/><br/>
+          Proses ini akan menyalin data & subkoleksi, lalu menghapus dokumen lama.
+        `,
+        icon: "warning",
+        showCancelButton: true,
+        confirmButtonText: "Ya, ganti ID",
+        cancelButtonText: "Batal",
+      });
+      if (!konf.isConfirmed) return;
+
+      // Pastikan newId belum ada
+      const newSnap = await getDoc(doc(db, "kelompok_tani", newId));
+      if (newSnap.exists()) {
+        await Swal.fire("Gagal", `ID "${newId}" sudah digunakan. Pilih ID lain.`, "error");
+        return;
+      }
+
+      // Panggil util rename
+      await renameKelompokDoc({
+        db,
+        oldId,
+        newId,
+        data: dataToSave,
+        isGapoktan, // pakai state kamu yang sudah ada
+        // subcollectionsOverride: ["anggota"], // opsional override
+      });
+
+      await Swal.fire("Sukses", "ID kelompok berhasil diubah.", "success");
+
       setShowKelompokModal(false);
+      navigate(`/admin/detail/${newId}`, { replace: true });
     } catch (err) {
       console.error(err);
-      Swal.fire("Error", "Gagal memperbarui data kelompok", "error");
+      Swal.fire("Error", "Gagal memperbarui/merename kelompok", "error");
     }
   };
 
