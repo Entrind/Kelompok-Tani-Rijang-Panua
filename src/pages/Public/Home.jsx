@@ -1,9 +1,10 @@
+/* eslint-disable react-hooks/exhaustive-deps */
 import React, { useEffect, useState } from "react";
 import { db } from "../../firebase";
-import { collection, getDocs } from "firebase/firestore";
+import { collection, getDocs, query, where } from "firebase/firestore";
 import CardKelompok from "../../components/cards/CardKelompok";
-import { fetchStatistikKelompok } from "../../utils/statistik"; 
 import { Link } from "react-router-dom";
+import { getStatsOrInit } from "../../utils/statistik";
 
 const kategoriList = [
   { label: "Gapoktan", warna: "bg-lime-700", nama: "Gapoktan" },
@@ -19,29 +20,31 @@ export default function Home() {
   useEffect(() => {
     const fetchData = async () => {
       const result = {};
-      const stat = await fetchStatistikKelompok();
-
-      const kelompokSnap = await getDocs(collection(db, "kelompok_tani"));
-      for (const docKelompok of kelompokSnap.docs) {
-        const kelompokData = { id: docKelompok.id, ...docKelompok.data() };
-        const kategori = kelompokData.kategori || "Kelompok Tani";
-        if (!result[kategori]) result[kategori] = [];
-        result[kategori].push(kelompokData);
-      }
-
+      // Ambil 4 card per kategori (urut nama di client-side agar tidak perlu index Firestore)
       for (const kategori of kategoriList) {
-        if (result[kategori.nama]) {
-          result[kategori.nama] = result[kategori.nama]
-            .sort((a, b) => (a.nama_kelompok || "").localeCompare(b.nama_kelompok || ""))
-            .slice(0, 4);
-        }
-      }
+        const q = query(
+          collection(db, "kelompok_tani"),
+          where("kategori", "==", kategori.nama),
+        );
+        const snap = await getDocs(q);
 
+        const sorted4 = snap.docs
+          .map((doc) => ({ id: doc.id, ...doc.data() }))
+          .sort((a, b) =>
+            (a.nama_kelompok || "").toLowerCase().localeCompare((b.nama_kelompok || "").toLowerCase())
+          )
+          .slice(0, 4);
+
+        result[kategori.nama] = sorted4;
+      }
       setDataPerKategori(result);
+
+      // Ambil statistik global (auto-create kalau belum ada)
+      const s = await getStatsOrInit();
       setStats({
-        kelompok: stat.jumlahKelompok,
-        anggota: stat.totalAnggota,
-        lahan: stat.totalLahan,
+        kelompok: s.jumlahKelompok,
+        anggota: s.totalAnggota,
+        lahan: s.totalLahan,
       });
     };
 
@@ -51,7 +54,7 @@ export default function Home() {
   return (
     <div className="min-h-screen">
       {/* Header */}
-        <div
+      <div
         className="h-96 bg-cover bg-center flex items-center justify-center"
         style={{
           backgroundImage:
@@ -60,7 +63,7 @@ export default function Home() {
       >
         <div className="w-full px-4 sm:px-6 md:px-8"> 
           <div className="bg-black/50 p-6 rounded-xl max-w-3xl mx-auto text-center">
-            <h1 className="text-3xl md:text-4xl font-bold text-white">Sistem Informasi Kelompok Tani Desa Rijang Panua</h1>
+            <h1 className="lg:text-3xl  md:text-2xl font-bold text-white">Sistem Informasi Kelompok Tani<br></br>Desa Rijang Panua</h1>
           </div>
         </div>
       </div>
@@ -92,19 +95,23 @@ export default function Home() {
       {/* Card per kategori */}
       {kategoriList.map((kat) => (
         <div key={kat.nama} className="py-8 px-4">
-          <div className="flex justify-between items-center mb-4">
-            <h2 className={`text-xl font-bold ${kat.warna} text-white px-3 py-1 rounded shadow-md`}>{kat.label}</h2>
-            <Link
-              to={`/kelompoklist?kategori=${kat.nama}`}
-              className="text-sm text-blue-700 hover:underline"
-            >
-              Lihat Semua
-            </Link>
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-            {(dataPerKategori[kat.nama] || []).map((item) => (
-              <CardKelompok key={item.id} kelompok={item} />
-            ))}
+          <div className="max-w-screen-xl mx-auto">
+            <div className="flex justify-between items-center mb-4">
+              <h2 className={`text-xl font-bold ${kat.warna} text-white px-3 py-1 rounded shadow-md`}>
+                {kat.label}
+              </h2>
+              <Link
+                to={`/kelompoklist?kategori=${kat.nama}`}
+                className="text-sm text-blue-700 hover:underline"
+              >
+                Lihat Semua
+              </Link>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+              {(dataPerKategori[kat.nama] || []).map((item) => (
+                <CardKelompok key={item.id} kelompok={item} />
+              ))}
+            </div>
           </div>
         </div>
       ))}

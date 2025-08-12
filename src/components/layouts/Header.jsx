@@ -11,13 +11,12 @@ export default function PublicHeader() {
   return (
     <header className="bg-lime-800 text-white py-3 px-6 shadow">
       <div className="max-w-full h-10 mx-auto flex justify-between items-center">
-        <div className="font-bold">
+        <Link to="/" className="font-bold lg:text-lg hover:text-white hover:underline">
           Kelompok Tani Rijang Panua
-        </div>
-        <nav className="space-x-4 text-sm">
-          <Link to="/" className="hover:underline">Beranda</Link>
-          <Link to="/kelompoklist" className="hover:underline">Kelompok</Link>
-          <Link to="/admin" className="hover:underline">Admin</Link>
+        </Link>
+        <nav className="space-x-5 text-sm">
+          <Link to="/kelompoklist" className="hover:text-white hover:underline">Kelompok</Link>
+          <Link to="/admin" className="hover:text-white hover:underline">Admin</Link>
         </nav>
       </div>
     </header>
