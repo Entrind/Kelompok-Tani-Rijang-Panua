@@ -1,4 +1,3 @@
-// src/components/auth/RequireAuth.jsx
 import React, { useEffect, useState, useMemo } from "react";
 import { Navigate, useLocation } from "react-router-dom";
 import { onAuthStateChanged, getIdTokenResult } from "firebase/auth";
@@ -7,37 +6,39 @@ import { doc, getDoc } from "firebase/firestore";
 
 /**
  * Props:
- *  - roles?: string[]   → ["superadmin", "admin"]
- *  - fallback?: ReactNode
+ *  - roles?: string[]   → daftar role yang diizinkan (contoh: ["superadmin", "admin"])
+ *  - fallback?: ReactNode → UI saat loading (opsional)
  */
 export default function RequireAuth({ children, roles, fallback }) {
   const location = useLocation();
   const [checking, setChecking] = useState(true);
   const [user, setUser] = useState(null);
   const [role, setRole] = useState(null);
-  const [active, setActive] = useState(true); // default true
+  const [active, setActive] = useState(null);
 
   const from = useMemo(() => ({ from: location }), [location]);
 
-  const readCached = () => {
-    try {
-      const raw = localStorage.getItem("admin");
-      return raw ? JSON.parse(raw) : null;
-    } catch {
-      return null;
-    }
-  };
-
-  const writeCached = (obj) => {
-    try {
-      localStorage.setItem("admin", JSON.stringify(obj));
-    } catch {
-      console.error("Gagal menyimpan cache admin:", obj);
-    }
-  };
-
   useEffect(() => {
     let isMounted = true;
+
+    const readCached = () => {
+      try {
+        const raw = localStorage.getItem("admin");
+        if (!raw) return null;
+        const parsed = JSON.parse(raw);
+        return parsed && typeof parsed?.role === "string" ? parsed : null;
+      } catch {
+        return null;
+      }
+    };
+
+    const writeCached = (obj) => {
+      try {
+        localStorage.setItem("admin", JSON.stringify(obj));
+      } catch {
+        /* ignore */
+      }
+    };
 
     const unsub = onAuthStateChanged(auth, async (u) => {
       if (!isMounted) return;
@@ -47,60 +48,50 @@ export default function RequireAuth({ children, roles, fallback }) {
         try { 
           localStorage.removeItem("admin"); 
         } catch {
-          console.error("Gagal menghapus cache admin");
+          /* ignore */
         }
         setRole(null);
-        setActive(false);
+        setActive(null);
         setChecking(false);
         return;
       }
 
-      // 1) Custom claims (opsional, jika kamu set)
+      // 1) custom claims (opsional)
       try {
         const token = await getIdTokenResult(u, true);
         const claimRole = token?.claims?.role || token?.claims?.roles?.[0] || null;
         if (claimRole) {
           setRole(claimRole);
-          // active tetap perlu cek Firestore (karena claim biasanya tidak memuat active)
         }
       } catch {
-        // lanjut
+        // ignore
       }
 
-      // 2) Ambil dari Firestore (wajib untuk cek active & nama)
+      // 2) Firestore admins doc (role + active)
       try {
         const snap = await getDoc(doc(db, "admins", u.uid));
         if (snap.exists()) {
           const data = snap.data();
-          const fsRole = data?.role || data?.roles?.[0] || null;
+          const fsRole = data?.role || null;
           const fsActive = data?.active !== false; // default true
-          setRole(fsRole);
+          setRole((r) => r || fsRole);
           setActive(fsActive);
-
-          // Simpan ke cache: nama, email, role, active
-          writeCached({
-            uid: u.uid,
-            email: u.email,
-            nama: data?.nama || "",
-            role: fsRole,
-            active: fsActive,
-          });
-
+          writeCached({ uid: u.uid, email: u.email, role: fsRole, active: fsActive, nama: data?.nama });
           setChecking(false);
           return;
         }
       } catch {
-        // lanjut
+        // ignore
       }
 
-      // 3) Fallback cache
+      // 3) fallback cache
       const cached = readCached();
       if (cached?.uid === u.uid) {
         setRole(cached.role || null);
-        setActive(cached.active !== false);
+        setActive(cached.active ?? true);
       } else {
         setRole(null);
-        setActive(false);
+        setActive(null);
       }
       setChecking(false);
     });
@@ -111,22 +102,19 @@ export default function RequireAuth({ children, roles, fallback }) {
     };
   }, []);
 
-  // UI saat verifikasi
   if (checking) {
     return fallback ?? <div className="p-6 text-center">Memeriksa sesi...</div>;
   }
 
-  // Belum login
   if (!user) {
     return <Navigate to="/admin/login" replace state={from} />;
   }
 
-  // Tidak aktif → tolak
-  if (!active) {
+  if (active === false) {
+    // Akun nonaktif
     return <Navigate to="/admin/login" replace />;
   }
 
-  // Cek roles (jika disediakan)
   if (Array.isArray(roles) && roles.length > 0) {
     if (!role || !roles.includes(role)) {
       return <Navigate to="/admin" replace />;

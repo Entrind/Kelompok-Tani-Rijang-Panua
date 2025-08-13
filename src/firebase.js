@@ -1,7 +1,7 @@
-// src/firebase.js
 import { initializeApp, getApps } from "firebase/app";
 import { getFirestore } from "firebase/firestore";
 import { getAuth } from "firebase/auth";
+import { getStorage } from "firebase/storage";
 
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
@@ -10,25 +10,19 @@ const firebaseConfig = {
   storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
   messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
   appId: import.meta.env.VITE_FIREBASE_APP_ID,
+  measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID,
 };
 
-const apps = getApps();
-const app = apps.length ? apps[0] : initializeApp(firebaseConfig);
+const app = getApps().length ? getApps()[0] : initializeApp(firebaseConfig);
 
 export const db = getFirestore(app);
 export const auth = getAuth(app);
+export const storage = getStorage(app);
 
-// Secondary App untuk create user tanpa switch sesi
-let secondaryApp;
 export const getSecondaryAuth = () => {
-  if (!secondaryApp) {
-    secondaryApp = initializeApp(firebaseConfig, "Secondary");
-  }
-  return getAuth(secondaryApp);
-};
-export const getSecondaryDb = () => {
-  if (!secondaryApp) {
-    secondaryApp = initializeApp(firebaseConfig, "Secondary");
-  }
-  return getFirestore(secondaryApp);
+  // Avoid duplicate app init
+  const name = "SECONDARY_APP";
+  const existing = getApps().find((a) => a.name === name);
+  const secApp = existing ?? initializeApp(firebaseConfig, name);
+  return getAuth(secApp);
 };

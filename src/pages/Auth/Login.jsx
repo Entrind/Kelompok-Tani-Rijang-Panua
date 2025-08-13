@@ -24,6 +24,26 @@ export default function AdminLogin() {
       const adminRef = doc(db, "admins", uid);
       const adminSnap = await getDoc(adminRef);
 
+      if (!adminSnap.exists()) {
+        toast.error("Akun ini bukan admin!");
+        return;
+      }
+
+      const a = adminSnap.data();
+      if (a.active === false) {
+        toast.error("Akun admin nonaktif.");
+        return;
+      }
+
+      // Simpan ke localStorage
+      localStorage.setItem("admin", JSON.stringify({
+        uid,
+        email,
+        nama: a.nama || userCredential.user.displayName || "",
+        role: a.role || "admin",
+        active: a.active !== false,
+      }));
+
       const data = adminSnap.data() || {};
       localStorage.setItem("admin", JSON.stringify({
         uid,

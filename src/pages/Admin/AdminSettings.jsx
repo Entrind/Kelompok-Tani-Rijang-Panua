@@ -1,93 +1,107 @@
 import React, { useEffect, useState } from "react";
-import { db } from "../../firebase";
+import { db, storage } from "../../firebase";
 import { doc, getDoc, setDoc, serverTimestamp } from "firebase/firestore";
-import { getStorage, ref, uploadBytesResumable, getDownloadURL } from "firebase/storage";
+import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { toast } from "react-toastify";
 
-const AdminSettings = () => {
+export default function AdminSettings() {
+  const [loading, setLoading] = useState(true);
   const [headerUrl, setHeaderUrl] = useState("");
-  const [preview, setPreview] = useState("");
-  const [uploading, setUploading] = useState(false);
+  const [file, setFile] = useState(null);
+  const [previewUrl, setPreviewUrl] = useState("");
 
-  const settingsRef = doc(db, "settings", "site");
-
-  const fetchSettings = async () => {
-    const snap = await getDoc(settingsRef);
-    if (snap.exists()) {
-      const d = snap.data();
-      setHeaderUrl(d.headerImageUrl || "");
-      setPreview(d.headerImageUrl || "");
+  const loadSettings = async () => {
+    setLoading(true);
+    try {
+      const snap = await getDoc(doc(db, "settings", "homepage"));
+      if (snap.exists()) {
+        setHeaderUrl(snap.data()?.headerImageUrl || "");
+      }
+    } catch (e) {
+      console.error(e);
+      toast.error("Gagal memuat settings");
+    } finally {
+      setLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchSettings();
+    loadSettings();
   }, []);
 
-  const handleFile = async (e) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    setUploading(true);
+  const handleSelect = (e) => {
+    const f = e.target.files?.[0];
+    setFile(f || null);
+    if (f) {
+      setPreviewUrl(URL.createObjectURL(f));
+    } else {
+      setPreviewUrl("");
+    }
+  };
+
+  const handleUpload = async () => {
+    if (!file) {
+      toast.warn("Pilih file gambar dulu");
+      return;
+    }
     try {
-      const storage = getStorage();
-      const path = `homepage/header-${Date.now()}-${file.name}`;
+      const path = `homepage/header_${Date.now()}_${file.name}`;
       const storageRef = ref(storage, path);
-
-      const task = uploadBytesResumable(storageRef, file);
-      await new Promise((resolve, reject) => {
-        task.on(
-          "state_changed",
-          () => {},
-          reject,
-          resolve
-        );
-      });
-
+      await uploadBytes(storageRef, file);
       const url = await getDownloadURL(storageRef);
-      setPreview(url);
-      await setDoc(settingsRef, {
+
+      await setDoc(doc(db, "settings", "homepage"), {
         headerImageUrl: url,
         updatedAt: serverTimestamp(),
       }, { merge: true });
 
+      setHeaderUrl(url);
+      setFile(null);
+      setPreviewUrl("");
       toast.success("Header image diperbarui");
-    } catch (err) {
-      console.error(err);
-      toast.error("Gagal upload");
-    } finally {
-      setUploading(false);
+    } catch (e) {
+      console.error(e);
+      toast.error("Gagal upload gambar");
     }
   };
 
+  if (loading) return <div className="p-6 text-center">Loading...</div>;
+
   return (
-    <div className="p-4 max-w-xl">
-      <h1 className="text-2xl font-bold mb-4">Pengaturan Situs</h1>
+    <div className="max-w-screen-lg mx-auto p-6">
+      <h1 className="text-2xl font-bold mb-4">Pengaturan Tampilan</h1>
 
-      <div className="bg-white p-4 rounded shadow">
-        <label className="block text-sm font-medium mb-2">Header Image</label>
+      <div className="bg-white p-4 rounded shadow space-y-4">
+        <div>
+          <h2 className="font-semibold mb-2">Gambar Header Homepage</h2>
+          {headerUrl ? (
+            <img src={headerUrl} alt="Header" className="w-full max-h-60 object-cover rounded" />
+          ) : (
+            <p className="text-sm text-gray-500">Belum ada gambar header</p>
+          )}
+        </div>
 
-        {preview && (
-          <img
-            src={preview}
-            alt="Header preview"
-            className="w-full h-48 object-cover rounded mb-3 border"
-          />
-        )}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 items-center">
+          <div>
+            <input type="file" accept="image/*" onChange={handleSelect} />
+          </div>
+          <div>
+            {previewUrl && (
+              <img src={previewUrl} alt="Preview" className="w-full max-h-60 object-cover rounded" />
+            )}
+          </div>
+        </div>
 
-        <input
-          type="file"
-          accept="image/*"
-          onChange={handleFile}
-          disabled={uploading}
-          className="w-full"
-        />
-
-        {uploading && (
-          <p className="text-sm text-gray-500 mt-2">Uploading...</p>
-        )}
+        <div className="flex justify-end">
+          <button
+            onClick={handleUpload}
+            className="px-4 py-2 bg-lime-700 text-white rounded hover:bg-lime-800"
+            disabled={!file}
+          >
+            Simpan Header
+          </button>
+        </div>
       </div>
     </div>
   );
-};
-
-export default AdminSettings;
+}
