@@ -1,13 +1,6 @@
 // src/utils/statistik.js
 import { db } from "../firebase";
-import {
-  collection,
-  getDocs,
-  doc,
-  setDoc,
-  getDoc,
-  serverTimestamp,
-} from "firebase/firestore";
+import { collection, getDocs, doc, setDoc, getDoc, serverTimestamp } from "firebase/firestore";
 
 /**
  * Hitung ulang statistik dari Firestore dan simpan ke dokumen "stats/global".
