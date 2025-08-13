@@ -1,11 +1,10 @@
 // src/components/layout/AdminHeader.jsx
 import React, { useEffect, useRef, useState } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
-import { auth, db } from '../../firebase'; // ✅ pastikan db diimport
+import { useLocation, useNavigate, NavLink } from 'react-router-dom';
+import { auth } from '../../firebase';
 import { signOut, onAuthStateChanged } from 'firebase/auth';
-import { doc, onSnapshot } from 'firebase/firestore'; // ✅ subscribe ke admins/{uid}
 import { toast } from 'react-toastify';
-import { CircleUserRound } from 'lucide-react';
+import { CircleUserRound, LayoutDashboard, UsersRound, Settings } from 'lucide-react';
 
 const toTitleCase = (s) =>
   typeof s === 'string' ? s.replace(/\b\w/g, (c) => c.toUpperCase()) : '';
@@ -19,14 +18,6 @@ const readAdminFromStorage = () => {
   }
 };
 
-const writeAdminToStorage = (obj) => {
-  try {
-    localStorage.setItem('admin', JSON.stringify(obj));
-  } catch {
-    /* ignore */
-  }
-};
-
 const AdminHeader = () => {
   const location = useLocation();
   const navigate = useNavigate();
@@ -35,75 +26,30 @@ const AdminHeader = () => {
   const isAdminRoute = location.pathname.startsWith('/admin');
 
   const [admin, setAdmin] = useState(readAdminFromStorage());
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(false);      // dropdown profil
+  // const [navOpen, setNavOpen] = useState(false); // mobile nav
   const menuRef = useRef(null);
 
-  // Sync dengan auth + Firestore admins/{uid}
+  // Sinkronkan dgn auth state
   useEffect(() => {
-    let unsubAuth;
-    let unsubDoc;
-
-    unsubAuth = onAuthStateChanged(auth, (u) => {
-      // Jika logout
+    const unsub = onAuthStateChanged(auth, (u) => {
       if (!u) {
         setAdmin(null);
         try {
           localStorage.removeItem('admin');
         } catch {
-            /* ignore */
+          /* ignore */
         }
-        if (unsubDoc) {
-          unsubDoc();
-          unsubDoc = null;
+      } else {
+        const stored = readAdminFromStorage();
+        if (stored && stored.uid === u.uid) {
+          setAdmin(stored);
+        } else {
+          setAdmin({ uid: u.uid, email: u.email, role: 'admin' });
         }
-        return;
       }
-
-      // Set nilai minimal dulu (agar tidak blank)
-      const stored = readAdminFromStorage();
-      const base = {
-        uid: u.uid,
-        email: u.email || stored?.email || '',
-        // fallback nama: yang ada di Firestore (nanti di-override), localStorage, atau displayName
-        nama: stored?.nama || u.displayName || '',
-        role: stored?.role || 'admin',
-      };
-      setAdmin(base);
-
-      // 🔁 Subscribe perubahan dokumen admins/{uid}
-      const ref = doc(db, 'admins', u.uid);
-      unsubDoc = onSnapshot(
-        ref,
-        (snap) => {
-          if (snap.exists()) {
-            const d = snap.data();
-            const merged = {
-              ...base,
-              ...d,
-              // pastikan field yang kita pakai konsisten
-              nama: d.nama || d.name || base.nama,
-              role: d.role || base.role,
-            };
-            setAdmin(merged);
-            writeAdminToStorage(merged);
-          } else {
-            // jika doc tidak ada, tetap gunakan base
-            setAdmin(base);
-            writeAdminToStorage(base);
-          }
-        },
-        () => {
-          // error snapshot → tetap gunakan base
-          setAdmin(base);
-          writeAdminToStorage(base);
-        }
-      );
     });
-
-    return () => {
-      if (unsubAuth) unsubAuth();
-      if (unsubDoc) unsubDoc();
-    };
+    return () => unsub();
   }, []);
 
   // Tutup dropdown jika klik di luar
@@ -135,72 +81,186 @@ const AdminHeader = () => {
     navigate('/admin/profile');
   };
 
-  if (!isAdminRoute) {
-    // Jangan render AdminHeader di route publik
-    return null;
-  }
+  if (!isAdminRoute) return null; // jangan render di route publik
+
+  const role = (admin?.role || '').toLowerCase();
+  const isSuperadmin = role === 'superadmin';
+
+  // styling helper utk NavLink
+  const linkBase =
+    'inline-flex items-center gap-2 px-3 py-1 rounded hover:bg-white/20 transition';
+  const linkActive = 'bg-white/20';
 
   return (
-    <header className="bg-lime-800 text-white py-4 px-6 shadow">
-      <div className="max-w-full mx-auto flex justify-between items-center">
+    <header className="bg-lime-800 text-white py-3 px-4 sm:px-6 shadow">
+      <div className="max-w-full h-10 mx-auto flex items-center justify-between gap-3">
+        {/* Logo / Title */}
         <div
-          className="font-bold cursor-pointer"
+          className="font-bold text-lg cursor-pointer"
           onClick={() => navigate('/')}
           title="Beranda"
         >
           Kelompok Tani Rijang Panua
         </div>
 
-        {/* Jika bukan halaman login dan admin null -> tampilkan tombol Login */}
-        {!isLoginPage && !admin && (
+        {/* Mobile: tombol toggle nav */}
+        {/* {!isLoginPage && admin && (
           <button
-            onClick={() => navigate('/admin/login')}
-            className="px-3 py-1 rounded bg-white text-lime-800 hover:bg-lime-100 transition"
-          >
-            Login
+            className="md:hidden inline-flex items-center justify-center rounded px-2 py-1 hover:bg-white/20"
+            onClick={() => setNavOpen((v) => !v)}
+            aria-label="Toggle navigation"
+            title="Menu"
+          > */}
+            {/* simple hamburger */}
+            {/* <span className="block w-5 h-0.5 bg-white mb-1"></span>
+            <span className="block w-5 h-0.5 bg-white mb-1"></span>
+            <span className="block w-5 h-0.5 bg-white"></span>
           </button>
-        )}
+        )} */}
 
-        {/* Dropdown hanya jika admin ada dan bukan halaman login */}
-        {!isLoginPage && admin && (
-          <div className="relative" ref={menuRef}>
-            <button
-              className="flex items-center gap-2 px-2 py-1 rounded hover:bg-lime-700 border-none transition"
-              onClick={() => setOpen((v) => !v)}
-              title={admin.nama || admin.email || 'Admin'}
-            >
-              {/* Badge role */}
-              {admin.role && (
-                <span className="hidden sm:inline text-xs bg-white/20 px-2 py-0.5 rounded">
-                  {toTitleCase(admin.role)}
-                </span>
+        <div className="flex items-center gap-4">
+          {/* Nav Links (Desktop) */}
+          {!isLoginPage && admin && (
+            <nav className="hidden md:flex items-center gap-2">
+              <NavLink
+                to="/admin"
+                end
+                className={({ isActive }) =>
+                  `${linkBase} ${isActive ? linkActive : ''}`
+                }
+              >
+                <LayoutDashboard className="hover: text-white" size={18} />
+                <span className="hover: text-white text-sm">Dashboard</span>
+              </NavLink>
+
+              {isSuperadmin && (
+                <>
+                  <NavLink
+                    to="/admin/admins"
+                    className={({ isActive }) =>
+                      `${linkBase} ${isActive ? linkActive : ''}`
+                    }
+                  >
+                    <UsersRound className="hover: text-white" size={18} />
+                    <span className="hover: text-white text-sm">Manage Admins</span>
+                  </NavLink>
+
+                  <NavLink
+                    to="/admin/settings"
+                    className={({ isActive }) =>
+                      `${linkBase} ${isActive ? linkActive : ''}`
+                    }
+                  >
+                    <Settings className="hover: text-white" size={18} />
+                    <span className="hover: text-white text-sm">Settings</span>
+                  </NavLink>
+                </>
               )}
-              <span className="hidden sm:inline text-sm text-white">
-                {admin.nama || admin.email || 'Admin'}
-              </span>
-              <CircleUserRound size={22} className="text-white" />
-            </button>
+            </nav>
+          )}
 
-            {/* Dropdown */}
-            {open && (
-              <div className="absolute right-0 mt-2 w-48 bg-white border rounded-md shadow-lg z-50">
-                <button
-                  onClick={handleGoProfile}
-                  className="w-full text-left px-4 py-2 text-sm text-gray-600 hover:bg-gray-100"
-                >
-                  Profile
-                </button>
-                <button
-                  onClick={handleLogout}
-                  className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-gray-100"
-                >
-                  Logout
-                </button>
-              </div>
-            )}
-          </div>
-        )}
+          {/* Tombol Login (jika belum login, bukan login page) */}
+          {!isLoginPage && !admin && (
+            <button
+              onClick={() => navigate('/admin/login')}
+              className="px-3 py-1 rounded bg-white text-lime-800 hover:bg-lime-100 transition"
+            >
+              Login
+            </button>
+          )}
+
+          {/* Dropdown Profil (Desktop & Mobile) */}
+          {!isLoginPage && admin && (
+            <div className="relative" ref={menuRef}>
+              <button
+                className="flex items-center gap-2 px-2 py-1 rounded hover:bg-white/20 transition"
+                onClick={() => setOpen((v) => !v)}
+                title={admin.nama || admin.email || 'Admin'}
+              >
+                {/* Badge role */}
+                {admin.role && (
+                  <span className="hidden sm:inline text-xs bg-white/20 px-2 py-0.5 rounded">
+                    {toTitleCase(admin.role)}
+                  </span>
+                )}
+                <span className="hidden sm:inline text-sm">
+                  {admin.nama || admin.email || 'Admin'}
+                </span>
+                <CircleUserRound size={22} className="text-white" />
+              </button>
+
+              {open && (
+                <div className="absolute right-0 mt-2 w-52 bg-white border rounded-md shadow-lg z-50">
+                  <button
+                    onClick={handleGoProfile}
+                    className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                  >
+                    Profile
+                  </button>
+                  <button
+                    onClick={handleLogout}
+                    className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-gray-100"
+                  >
+                    Logout
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
       </div>
+        
+
+      {/* Nav Links (Mobile Drawer)
+      {!isLoginPage && admin && navOpen && (
+        <div className="md:hidden mt-3 px-1">
+          <nav className="flex flex-col gap-1 bg-lime-900 rounded p-2">
+            <NavLink
+              to="/admin"
+              end
+              className={({ isActive }) =>
+                `px-3 py-2 rounded text-sm hover:bg-white/10 ${isActive ? 'bg-white/20' : ''}`
+              }
+              onClick={() => setNavOpen(false)}
+            >
+              <span className="inline-flex items-center gap-2">
+                <LayoutDashboard size={18} />
+                Dashboard
+              </span>
+            </NavLink>
+
+            {isSuperadmin && (
+              <>
+                <NavLink
+                  to="/admin/manage-admins"
+                  className={({ isActive }) =>
+                    `px-3 py-2 rounded text-sm hover:bg-white/10 ${isActive ? 'bg-white/20' : ''}`
+                  }
+                  onClick={() => setNavOpen(false)}
+                >
+                  <span className="inline-flex items-center gap-2">
+                    <UsersRound size={18} />
+                    Manage Admins
+                  </span>
+                </NavLink>
+
+                <NavLink
+                  to="/admin/settings"
+                  className={({ isActive }) =>
+                    `px-3 py-2 rounded text-sm hover:bg-white/10 ${isActive ? 'bg-white/20' : ''}`
+                  }
+                  onClick={() => setNavOpen(false)}
+                >
+                  <span className="inline-flex items-center gap-2">
+                    <Settings size={18} />
+                    Settings
+                  </span>
+                </NavLink>
+              </>
+            )}
+          </nav>
+        </div>
+      )} */}
     </header>
   );
 };

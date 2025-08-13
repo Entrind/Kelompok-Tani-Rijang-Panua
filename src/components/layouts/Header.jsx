@@ -11,7 +11,7 @@ export default function PublicHeader() {
   return (
     <header className="bg-lime-800 text-white py-3 px-6 shadow">
       <div className="max-w-full h-10 mx-auto flex justify-between items-center">
-        <Link to="/" className="font-bold lg:text-lg hover:text-white hover:underline">
+        <Link to="/" className="font-bold lg:text-lg hover:text-white" title="Beranda">
           Kelompok Tani Rijang Panua
         </Link>
         <nav className="space-x-5 text-sm">
