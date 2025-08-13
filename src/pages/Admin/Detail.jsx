@@ -39,6 +39,7 @@ const Detail = () => {
   const [isGapoktan, setIsGapoktan] = useState(false);
   const [pengurus, setPengurus] = useState([]); // subkoleksi 'pengurus'
   const [kelompokAnggota, setKelompokAnggota] = useState([]); // subkoleksi 'kelompok_anggota' (diperkaya)
+  const [totalLahanGabungan, setTotalLahanGabungan] = useState(0);
 
   // modal states (gapoktan)
   const [showTambahKelompok, setShowTambahKelompok] = useState(false);
@@ -126,7 +127,15 @@ const Detail = () => {
       const enriched = await Promise.all(
         kaSnap.docs.map(async (d) => {
           const { kelompokId, nama_kelompok } = d.data();
-          let detail = {};
+          let detail = {
+            kategori: "Kelompok Tani",
+            ketua: "-",
+            sekretaris: "-",
+            bendahara: "-",
+            jumlah_anggota: 0,
+            total_lahan: 0,
+          };
+
           if (kelompokId) {
             const kDoc = await getDoc(doc(db, "kelompok_tani", kelompokId));
             if (kDoc.exists()) {
@@ -137,10 +146,12 @@ const Detail = () => {
                 sekretaris: kData.sekretaris || "-",
                 bendahara: kData.bendahara || "-",
                 jumlah_anggota: kData.jumlah_anggota || 0,
-                total_lahan: kData.total_lahan || 0,
+                // pastikan numerik
+                total_lahan: parseFloat(kData.total_lahan || 0) || 0,
               };
             }
           }
+
           return {
             id: d.id,
             kelompokId: kelompokId || null,
@@ -150,11 +161,18 @@ const Detail = () => {
         })
       );
 
-      // Urutkan berdasarkan nama_kelompok A→Z
+      // Urutkan A→Z
       enriched.sort((a, b) =>
         (a.nama_kelompok || "").localeCompare(b.nama_kelompok || "")
       );
       setKelompokAnggota(enriched);
+
+      // === Hitung total lahan gabungan (seperti DetailPublik) ===
+      const total = enriched.reduce(
+        (sum, item) => sum + (parseFloat(item.total_lahan) || 0),
+        0
+      );
+      setTotalLahanGabungan(total);
     } catch (e) {
       console.error(e);
       toast.error("Gagal memuat data gapoktan");
@@ -180,6 +198,7 @@ const Detail = () => {
             const anggotaRef = collection(docRef, "anggota");
             const anggotaSnap = await getDocs(anggotaRef);
             setAnggota(anggotaSnap.docs.map((d) => ({ id: d.id, ...d.data() })));
+            setTotalLahanGabungan(0); // reset saat non-gapoktan
           }
         }
       } catch (err) {
@@ -736,6 +755,10 @@ const Detail = () => {
             <>
               <p>
                 Jumlah Kelompok: <strong>{kelompokAnggota.length}</strong>
+              </p>
+              <p>
+                Total Lahan (gabungan):{" "}
+                <strong>{Number(totalLahanGabungan || 0).toFixed(2)} Ha</strong>
               </p>
             </>
           ) : (
