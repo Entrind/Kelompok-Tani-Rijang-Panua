@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import Swal from "sweetalert2";
 
-const AnggotaFormModal = ({ visible, onClose, onSubmit, initialData }) => {
+const AnggotaFormModal = ({ visible, onClose, onSubmit, initialData, existingJabatan }) => {
   const [form, setForm] = useState({
     nama: "",
     nik: "",
@@ -10,6 +10,10 @@ const AnggotaFormModal = ({ visible, onClose, onSubmit, initialData }) => {
     jabatan: "",
     ket: "",
   });
+
+  const unik = new Set(["Ketua", "Sekretaris", "Bendahara"]);
+  const taken = new Set(existingJabatan || []);
+  const currentJabatan = initialData?.jabatan;
 
   // Reset form ketika modal dibuka atau initialData berubah
   useEffect(() => {
@@ -96,9 +100,9 @@ const AnggotaFormModal = ({ visible, onClose, onSubmit, initialData }) => {
             }`}
           >
             <option value="" disabled selected>Pilih Jabatan</option>
-            <option value="Ketua">Ketua</option>
-            <option value="Sekretaris">Sekretaris</option>
-            <option value="Bendahara">Bendahara</option>
+            <option value="Ketua" disabled={unik.has("Ketua") && taken.has("Ketua") && currentJabatan!=="Ketua"}>Ketua</option>
+            <option value="Sekretaris" disabled={unik.has("Sekretaris") && taken.has("Sekretaris") && currentJabatan!=="Sekretaris"}>Sekretaris</option>
+            <option value="Bendahara" disabled={unik.has("Bendahara") && taken.has("Bendahara") && currentJabatan!=="Bendahara"}>Bendahara</option>
             <option value="Anggota">Anggota</option>
           </select>
           <input
