@@ -32,8 +32,8 @@ export default function AdminLogin() {
         role: data.role || "admin",
       }));
 
-      if (!adminSnap.exists()) {
-        toast.error("Akun ini bukan admin!");
+      if (!adminSnap.exists() || adminSnap.data().active === false) {
+        toast.error("Akun ini tidak memiliki akses admin.");
         return;
       }
 

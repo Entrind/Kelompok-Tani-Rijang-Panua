@@ -9,7 +9,9 @@ import DetailPublik from './pages/Public/Detail';
 import Admin from './pages/Admin/Admin';
 import Detail from './pages/Admin/Detail';
 import Profile from './pages/Admin/Profile';
+
 import ManageAdmins from './pages/Admin/ManageAdmins';
+import AdminSettings from './pages/Admin/AdminSettings';
 
 import AdminLogin from './pages/Auth/Login';
 import ForgotPassword from './pages/Auth/ForgotPassword';
@@ -79,10 +81,18 @@ export default function App() {
             }
           />
           <Route
-            path="/admin/manage-admins"
+            path="/admin/admins"
             element={
               <RequireAuth roles={['superadmin']}>
                 <ManageAdmins />
+              </RequireAuth>
+            }
+          />
+          <Route
+            path="/admin/settings"
+            element={
+              <RequireAuth roles={['superadmin']}>
+                <AdminSettings />
               </RequireAuth>
             }
           />

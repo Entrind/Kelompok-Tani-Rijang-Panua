@@ -1,14 +1,7 @@
 /* eslint-disable react-hooks/exhaustive-deps */
 import React, { useEffect, useState } from "react";
 import { db } from "../../firebase";
-import {
-  collection,
-  getDocs,
-  query,
-  where,
-  doc,
-  getDoc,
-} from "firebase/firestore";
+import { collection, getDocs, query, where, doc, getDoc } from "firebase/firestore";
 import CardKelompok from "../../components/cards/CardKelompok";
 import { Link } from "react-router-dom";
 import { getStatsOrInit } from "../../utils/statistik";
@@ -24,6 +17,22 @@ export default function Home() {
   const [dataPerKategori, setDataPerKategori] = useState({});
   const [stats, setStats] = useState({ kelompok: 0, anggota: 0, lahan: 0 });
 
+  const [headerImage, setHeaderImage] = useState(
+    "https://firebasestorage.googleapis.com/v0/b/.../sawah.png?alt=media..."
+  );
+
+  useEffect(() => {
+    const loadHeader = async () => {
+      try {
+        const snap = await getDoc(doc(db, "settings", "site"));
+        if (snap.exists()) {
+          const url = snap.data()?.headerImageUrl;
+          if (url) setHeaderImage(url);
+        }
+      } catch {/* ignore */}
+    };
+    loadHeader();
+  }, []);
   useEffect(() => {
     const fetchData = async () => {
       const result = {};
@@ -134,10 +143,7 @@ export default function Home() {
       {/* Header */}
       <div
         className="h-96 bg-cover bg-center flex items-center justify-center"
-        style={{
-          backgroundImage:
-            "url('https://firebasestorage.googleapis.com/v0/b/kelompok-tani-rijang-panua.firebasestorage.app/o/homepage%2Fsawah.png?alt=media&token=604a6cf2-b4c8-4660-89e2-d977152e8cc8')",
-        }}
+        style={{ backgroundImage: `url('${headerImage}')` }}
       >
         <div className="w-full px-4 sm:px-6 md:px-8">
           <div className="bg-black/50 p-6 rounded-xl max-w-3xl mx-auto text-center">
