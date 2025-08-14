@@ -350,6 +350,7 @@ const DetailPublik = () => {
               getRowId={(row) => row.id}
               enableColumnActions={false}
               enableColumnFilters={false}
+              enableHiding={false}
               initialState={{
                 pagination: { pageIndex: 0, pageSize: 10 },
               }}
@@ -383,6 +384,7 @@ const DetailPublik = () => {
               getRowId={(row) => row.id}
               enableColumnActions={false}
               enableColumnFilters={false}
+              enableHiding={false}
               initialState={{
                 pagination: { pageIndex: 0, pageSize: 10 },
                 sorting: [{ id: "nama_kelompok", desc: false }],
@@ -420,7 +422,7 @@ const DetailPublik = () => {
               getRowId={(row) => row.id}
               enableColumnActions={false}
               enableColumnFilters={false}
-              enableGlobalFilter={false}
+              enableHiding={false}
               initialState={{
                 sorting: [{ id: "jabatan", desc: false }],
                 pagination: { pageIndex: 0, pageSize: 10 },
