@@ -420,6 +420,7 @@ const DetailPublik = () => {
               getRowId={(row) => row.id}
               enableColumnActions={false}
               enableColumnFilters={false}
+              enableGlobalFilter={false}
               initialState={{
                 sorting: [{ id: "jabatan", desc: false }],
                 pagination: { pageIndex: 0, pageSize: 10 },
