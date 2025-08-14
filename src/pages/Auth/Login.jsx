@@ -29,6 +29,34 @@ export default function AdminLogin() {
         return;
       }
 
+      const a = adminSnap.data();
+      if (a.active === false) {
+        toast.error("Akun admin nonaktif.");
+        return;
+      }
+
+      // Simpan ke localStorage
+      localStorage.setItem("admin", JSON.stringify({
+        uid,
+        email,
+        nama: a.nama || userCredential.user.displayName || "",
+        role: a.role || "admin",
+        active: a.active !== false,
+      }));
+
+      const data = adminSnap.data() || {};
+      localStorage.setItem("admin", JSON.stringify({
+        uid,
+        email,
+        nama: data.nama || userCredential.user.displayName || "", // ✅ fallback
+        role: data.role || "admin",
+      }));
+
+      if (!adminSnap.exists() || adminSnap.data().active === false) {
+        toast.error("Akun ini tidak memiliki akses admin.");
+        return;
+      }
+
       localStorage.setItem("admin", JSON.stringify({
         uid,
         email,
@@ -83,19 +111,17 @@ export default function AdminLogin() {
             <label className="flex items-center text-sm text-gray-700">
               <input
                 type="checkbox"
-                className="mr-2 bg-white border-gray-300 rounded focus:ring-green-500"
+                className="h-4 w-4 ml-1 mr-2 rounded-sm border border-gray-400 bg-white checked:bg-blue-600 checked:border-blue-600 checked:appearance-auto appearance-none"
                 checked={rememberMe}
                 onChange={() => setRememberMe(!rememberMe)}
               />
               Ingat saya
             </label>
-            <button
-              type="button"
-              className="text-sm text-blue-600 hover:underline"
-              onClick={() => toast.info("Hubungi admin untuk reset password.")}
-            >
+            <label className="flex items-center gap-2 text-sm">
+            </label>
+            <a href="/admin/forgot-password" className="text-sm text-blue-700 hover:underline">
               Lupa password?
-            </button>
+            </a>
           </div>
 
           <button

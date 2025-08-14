@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import Swal from "sweetalert2";
+import { Lock, LockOpen } from "@mui/icons-material";
 
 const KelompokFormModal = ({ visible, onClose, onSubmit, initialData, defaultRegion }) => {
   const [form, setForm] = useState({
@@ -14,6 +15,9 @@ const KelompokFormModal = ({ visible, onClose, onSubmit, initialData, defaultReg
     bendahara: "",
   });
 
+  // 🔒 Kunci ID default
+  const [idLocked, setIdLocked] = useState(true);
+
   useEffect(() => {
     if (initialData) {
       setForm({
@@ -27,6 +31,7 @@ const KelompokFormModal = ({ visible, onClose, onSubmit, initialData, defaultReg
         sekretaris: initialData.sekretaris || "",
         bendahara: initialData.bendahara || "",
       });
+      setIdLocked(true); // default terkunci saat edit
     } else {
       setForm((prev) => ({
         ...prev,
@@ -40,6 +45,7 @@ const KelompokFormModal = ({ visible, onClose, onSubmit, initialData, defaultReg
         sekretaris: "",
         bendahara: "",
       }));
+      setIdLocked(false); // default terbuka saat tambah
     }
   }, [initialData, defaultRegion]);
 
@@ -51,22 +57,37 @@ const KelompokFormModal = ({ visible, onClose, onSubmit, initialData, defaultReg
 
   const titleCase = (text) => {
     const keepUpper = ["KWT", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX", "X"];
-    
     return text
-    .split(" ")
-    .map((word) =>
-      word
-        .split("-")
-        .map((sub) => {
-          const upper = sub.toUpperCase();
-          if (keepUpper.includes(upper)) {
-            return upper;
-          }
-          return sub.charAt(0).toUpperCase() + sub.slice(1).toLowerCase();
-        })
-        .join("-")
-    )
-    .join(" ");
+      .split(" ")
+      .map((word) =>
+        word
+          .split("-")
+          .map((sub) => {
+            const upper = sub.toUpperCase();
+            if (keepUpper.includes(upper)) {
+              return upper;
+            }
+            return sub.charAt(0).toUpperCase() + sub.slice(1).toLowerCase();
+          })
+          .join("-")
+      )
+      .join(" ");
+  };
+
+  const handleUnlockId = async () => {
+    const result = await Swal.fire({
+      title: "Edit ID Kelompok?",
+      text: "Mengubah ID kelompok dapat mempengaruhi data terkait. Lanjutkan?",
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonText: "Ya, buka kunci",
+      cancelButtonText: "Batal",
+    });
+
+    if (result.isConfirmed) {
+      setIdLocked(false);
+      Swal.fire("Kunci terbuka", "ID kelompok sekarang bisa diubah", "info");
+    }
   };
 
   const handleSubmit = async () => {
@@ -88,7 +109,6 @@ const KelompokFormModal = ({ visible, onClose, onSubmit, initialData, defaultReg
     };
 
     onSubmit(data);
-
     onClose();
   };
 
@@ -99,15 +119,36 @@ const KelompokFormModal = ({ visible, onClose, onSubmit, initialData, defaultReg
           {initialData ? "Edit Kelompok" : "Tambah Kelompok"}
         </h2>
 
-        {/* ID Kelompok (opsional) */}
-        <input
-          type="text"
-          placeholder="ID Kelompok (opsional)"
-          value={form.id_kelompok}
-          onChange={(e) => handleChange("id_kelompok", e.target.value)}
-          className="bg-white border p-2 w-full rounded mb-2"
-          disabled={!!initialData}
-        />
+        {/* ID Kelompok */}
+        <div className="flex items-center gap-2 mb-2">
+          <input
+            type="text"
+            placeholder="ID Kelompok"
+            value={form.id_kelompok}
+            onChange={(e) => handleChange("id_kelompok", e.target.value)}
+            className="bg-white border p-2 w-full rounded"
+            disabled={idLocked}
+          />
+          {idLocked ? (
+            <button
+              type="button"
+              onClick={handleUnlockId}
+              className="p-2 bg-gray-200 rounded hover:bg-gray-300"
+              title="Buka kunci ID"
+            >
+              <Lock fontSize="small" className="mx-0.5" />
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={() => setIdLocked(true)}
+              className="p-2 bg-gray-200 rounded hover:bg-gray-300"
+              title="Kunci kembali ID"
+            >
+              <LockOpen fontSize="small" className="mx-0.5" />
+            </button>
+          )}
+        </div>
 
         {/* Nama kelompok */}
         <input
@@ -118,7 +159,7 @@ const KelompokFormModal = ({ visible, onClose, onSubmit, initialData, defaultReg
           className="bg-white border p-2 w-full rounded mb-2"
         />
 
-        {/* Kategori Kelompok */}
+        {/* Kategori */}
         <select
           className={`w-full bg-white border rounded-md mb-2 px-3 py-2 ${
             form.kategori === "" ? "text-gray-400" : "text-black"
@@ -156,7 +197,7 @@ const KelompokFormModal = ({ visible, onClose, onSubmit, initialData, defaultReg
           className="bg-white border p-2 w-full rounded mb-2"
         />
 
-        {/* Ketua, Sekretaris, Bendahara (opsional) */}
+        {/* Ketua, Sekretaris, Bendahara */}
         {!initialData && (
           <>
             <input
