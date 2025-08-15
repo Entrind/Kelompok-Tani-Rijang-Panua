@@ -942,7 +942,6 @@ const Detail = () => {
               data={anggota}
               getRowId={(row) => row.id}
               enableColumnActions={false}
-              enableColumnFilters={false}
               initialState={{
                 columnOrder: columnOrderFixed,
                 sorting: [{ id: "jabatan", desc: false }],
